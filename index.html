@@ -1,9 +1,10 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#4f2a6b">
+<meta name="theme-color" content="#6a2150">
 <meta name="robots" content="noindex,nofollow">
 <link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./namu.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,8 +21,8 @@
 :root{
   --bg:#f7f3f6; --renew-bg:#c9ecd8; --renew-fg:#11593a; --term-bg:#e0434a; --term-fg:#ffffff; --new-bg:#2f6fd6; --new-fg:#ffffff; --new-soft:#e6efff; --surface:#ffffff; --surface2:#fbf7fa; --line:#e9dfe6; --line2:#f3ecf1;
   --fg:#2a1d38; --muted:#74677f; --faint:#9a8fa3;
-  --accent:#c4256f; --accent-soft:#fbe7f1; --accent-ink:#a51d5d; --hover:#fbf0f6; --stripe:#f5ebf1;
-  --panel:#4f2a6b; --panel-ink:#ffffff; --panel-sub:#e6d3f0; --panel-tile:rgba(255,255,255,.1); --panel-edge:rgba(255,255,255,.22);
+  --accent:#c4256f; --accent-soft:#fbe7f1; --accent-ink:#a51d5d; --hover:#fbf0f6; --stripe:#efdde8;
+  --panel:#6a2150; --panel-ink:#ffffff; --panel-sub:#f6d6e6; --panel-tile:rgba(255,255,255,.1); --panel-edge:rgba(255,255,255,.22);
   --teal:#2e9b6a; --teal-soft:#e3f5ec; --teal-ink:#1f7a51;
   --bad:#c0362c; --bad-soft:#fde9e7; --warn:#8a6420; --warn-soft:#fff4dc;
   --trunk:#7a4a32; --word:#c4256f; --word2:#4f2a6b; --chip-dot:#e8478f; --shadow:rgba(60,20,60,.16);
@@ -30,16 +31,16 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#150f1b; --renew-bg:#1e5a3d; --renew-fg:#c9f5dc; --term-bg:#c7373d; --term-fg:#ffffff; --new-bg:#3b78e0; --new-fg:#ffffff; --new-soft:#182a4a; --surface:#1f1727; --surface2:#261d30; --line:#3a2d47; --line2:#2d2238;
   --fg:#f1e9f5; --muted:#b2a3bd; --faint:#8d7f99;
-  --accent:#f27bb3; --accent-soft:#3d1a30; --accent-ink:#f7a6cc; --hover:#2b1f36; --stripe:#2d2339;
-  --panel:#3a1f52; --panel-ink:#ffffff; --panel-sub:#dcc6ea; --panel-tile:rgba(255,255,255,.08); --panel-edge:rgba(255,255,255,.18);
+  --accent:#f27bb3; --accent-soft:#3d1a30; --accent-ink:#f7a6cc; --hover:#2b1f36; --stripe:#35283f;
+  --panel:#4a1838; --panel-ink:#ffffff; --panel-sub:#ecc6d9; --panel-tile:rgba(255,255,255,.08); --panel-edge:rgba(255,255,255,.18);
   --teal:#45c48c; --teal-soft:#16362a; --teal-ink:#7fe0b2;
   --bad:#ff8f86; --bad-soft:#3b1f1f; --warn:#f2c36b; --warn-soft:#382d16;
   --trunk:#c08a68; --word:#f58cbd; --word2:#d9b8ef; --chip-dot:#f27bb3; --shadow:rgba(0,0,0,.45); color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#150f1b; --renew-bg:#1e5a3d; --renew-fg:#c9f5dc; --term-bg:#c7373d; --term-fg:#ffffff; --new-bg:#3b78e0; --new-fg:#ffffff; --new-soft:#182a4a; --surface:#1f1727; --surface2:#261d30; --line:#3a2d47; --line2:#2d2238;
   --fg:#f1e9f5; --muted:#b2a3bd; --faint:#8d7f99;
-  --accent:#f27bb3; --accent-soft:#3d1a30; --accent-ink:#f7a6cc; --hover:#2b1f36; --stripe:#2d2339;
-  --panel:#3a1f52; --panel-ink:#ffffff; --panel-sub:#dcc6ea; --panel-tile:rgba(255,255,255,.08); --panel-edge:rgba(255,255,255,.18);
+  --accent:#f27bb3; --accent-soft:#3d1a30; --accent-ink:#f7a6cc; --hover:#2b1f36; --stripe:#35283f;
+  --panel:#4a1838; --panel-ink:#ffffff; --panel-sub:#ecc6d9; --panel-tile:rgba(255,255,255,.08); --panel-edge:rgba(255,255,255,.18);
   --teal:#45c48c; --teal-soft:#16362a; --teal-ink:#7fe0b2;
   --bad:#ff8f86; --bad-soft:#3b1f1f; --warn:#f2c36b; --warn-soft:#382d16;
   --trunk:#c08a68; --word:#f58cbd; --word2:#d9b8ef; --chip-dot:#f27bb3; --shadow:rgba(0,0,0,.45); color-scheme:dark}

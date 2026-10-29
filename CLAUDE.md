@@ -18,13 +18,13 @@
 
 ## 데이터 구조 (Firestore 컬렉션)
 
-- `buildings/{bid}`: 건물 (name, addr, order, price·loan(만원), rate, land, bldg, gfa, parking, approved(사용승인일), usage(건축물 용도), zone(용도지역), structure(구조), floors(층수), comp, memo, footer, 허그: hugSrc(appr 감정평가액|pub 공시가격), hugPrice, hugDate, hugLord·hugTen(적용 %, 기본 100·90), hugMort(근저당 채권최고액 합계), hugUnit(계약 호실 uid), hugDep(계약 보증금, 0이면 그 호실 보증금))
-- `units/{uid}`: 호실 (bid, ho, order, name, phone, deposit, rent, mgmt, payDay, moveIn, expiry, term, carry, limit, memo, type, autoBill, terminate·termExpiry·termBase·termMode·noticeDate·termRenewed, implied·prevExpiry·origExpiry, newContract·newAt·moveInPlan, foreign(외국인 — 허그 선순위 계산에 최우선변제금 4,800만))
+- `buildings/{bid}`: 건물 (name, addr, order, price·loan(만원), rate, land, bldg, gfa, parking, approved(사용승인일), usage(건축물 용도), zone(용도지역), structure(구조), floors(층수), comp, memo, footer, 허그: hugSrc(appr 감정평가액|pub 공시가격), hugPrice, hugDate, hugLord·hugTen(적용 %, 기본 100·90), hugMort(근저당 채권최고액 합계), hugUnit(계약 호실 uid), hugDep(계약 보증금, 0이면 그 호실 보증금), hugMulti(다세대 호실별 계산 — 현화리 290-4), hugRefUnit·hugRefPrice(기준 호실과 그 감정평가금액 → 1㎡당 금액))
+- `units/{uid}`: 호실 (bid, ho, order, name, phone, deposit, rent, mgmt, payDay, moveIn, expiry, term, carry, limit, memo, type, autoBill, terminate·termExpiry·termBase·termMode·noticeDate·termRenewed, implied·prevExpiry·origExpiry, newContract·newAt·moveInPlan, foreign(외국인 — 허그 선순위 계산에 최우선변제금 4,800만), area(전용면적 ㎡, 다세대 허그 계산용))
 - `ledgers/{uid}`: `{rows:[{due, rent, mgmt, rDate, rType, rAmt, mDate, mType, mAmt, note, sub?}]}` — 입금은 rDate/rAmt 한 칸에 적음(mDate/mAmt는 옛 자료 호환용), `sub:true` = 위 청구에 딸린 추가 입금 줄
 - `market/{bid}`: 매물장 시세 (price, loan, rate, rows:[{floor, ho, dep, rent, type, note}], footer) — 단위 만원
 - `meta/loans`: `{rows:[{bid, label, bank, amount, rate, kind, months, start, memo}]}` 이자·지출 화면 (`bid:"etc"` = 건물과 상관없는 기타 대출; kind `int`=이자만(기본) · `eq`=원리금균등 · `pr`=원금균등, months=총 기간(개월), start=대출 시작일 → 이번 달 이자·남은 원금·월 상환액 계산. rate는 소수(0.045))
 - `meta/expenses`: `{rows:[{bid, name, amount, cycle:"m"|"y", memo}], jong:[{label, amount, memo}×3]}` 건물별 공과금·관리 비용과 종부세 3칸(1년 금액) — 둘 다 **지출** 탭(`#costs`)에서 입력, 이자는 이자계산(`#loans`)에서 가져와 한 달 지출 정리. 순수익 = 월세+관리비(자동 청구 되는 호실만, `totals().ia`) − 이자 − 지출(1년 금액은 ÷12). 자동 청구 안 하는 호실 금액은 "포함 시"로 따로 표시 · `meta/autobill`: 자동 청구 잠금
-- `meta/hug`: 허그 기준 비율 `{lm:.6, ld:.9, tm:.6, tp:.8, td:1}` (임대인 담보·부채, 임차인 담보·선순위채권·부채). 건물별 화면 **허그 보증보험 확인** 카드: 선순위 보증금 = 계약 호실 뺀 나머지 보증금, 외국인은 max(보증금, 4,800만), 101호 공실은 1,000만. 원본 엑셀 '허그 보증보험 계산.xlsx'와 같은 식
+- `meta/hug`: 허그 기준 비율 `{lm:.6, ld:.9, tm:.6, tp:.8, td:1}` (임대인 담보·부채, 임차인 담보·선순위채권·부채). 건물별 화면 **허그 보증보험 확인** 카드: 선순위 보증금 = 계약 호실 뺀 나머지 보증금, 외국인은 max(보증금, 4,800만), 101호 공실은 1,000만, 그 밖의 공실은 4,800만(따로 표시). 공시가격이면 주택가액 = 공시가격×140% 후 임대인 100%·임차인 90%. 원본 엑셀 '허그 보증보험 계산.xlsx'와 같은 식
 - `photos/{bid}`: 건물 사진 `{data: JPEG data URI, w, h, at}` — 화면에서 최대 1280px로 줄여 약 700KB 이하로 저장. Firebase Storage는 결제 요금제가 필요해서 쓰지 않음
 - `access/{email}`: `{role: "edit" | "view", at}` 승인 목록 (관리자만 쓰기)
 - `meta/backup`: `{at, by}` 마지막 백업 시각. 머리글 **⤓ 백업** 버튼(관리자만)이 30일 지나면 진하게 바뀜

@@ -203,7 +203,8 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .tbl tr.due-late td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 .calc{color:var(--muted)}
 .nmwrap{position:relative;display:inline-block}
-.ab-off{position:absolute;left:100%;top:50%;transform:translateY(-50%);margin-left:5px;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:4px;font-size:11px;font-weight:800;line-height:1;color:var(--term-fg);background:var(--term-bg)}
+.ab-dot{position:absolute;left:100%;top:50%;transform:translateY(-50%);margin-left:4px;width:7px;height:7px;border-radius:50%}.ab-dot.on{background:var(--teal)}.ab-dot.off{background:var(--bad)}
+.legend .dot-l{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px;vertical-align:1px}
 .bcard{max-width:1100px}
 .binfo{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:760px){.binfo{grid-template-columns:1fr}}
@@ -376,7 +377,12 @@ input[type=date]::-webkit-datetime-edit{display:inline-flex;justify-content:cent
 .sum-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:4px 0 14px}
 .sum-head h2{margin:2px 0 0;font-size:22px;letter-spacing:-.04em}
 .sum-k{margin:0;font-size:12px;font-weight:800;letter-spacing:.12em;color:var(--accent)}
-.sum-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px;align-items:start}
+.sum-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+.stiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px}
+.stile{display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 8px;color:var(--fg);font:inherit;cursor:default}
+button.stile{cursor:pointer}button.stile:hover{background:var(--hover)}
+.stile .l{font-size:12px;font-weight:700;color:var(--muted)}.stile .n{font-size:21px;font-weight:800;letter-spacing:-.03em}.stile .n small{font-size:12px;font-weight:400;color:var(--muted);margin-left:2px}
+.stile.bad .n{color:var(--bad)}.stile.good .n{color:var(--teal-ink)}.stile.warn .n{color:var(--warn)}
 .sum-col{display:flex;flex-direction:column;min-width:0}
 .sum-card{margin-bottom:16px}
 .sum-sec+.sum-sec{margin-top:14px}
@@ -454,7 +460,7 @@ function expFrom(exp,t){var d=pd(exp);if(!d)return null;var c=d,n=0;while(c<TODA
 function nextExp(u){if(u.terminate){var d=pd(u.termExpiry||u.expiry);if(!d)return null;return {date:d,days:Math.round((d-TODAY)/864e5),auto:0,term:termOf(u),ended:d<TODAY}}return expFrom(u.expiry,termOf(u))}
 function planTag(u){if(!u.newContract||!u.moveInPlan)return "";var d=pd(u.moveInPlan);if(!d)return "";var n=Math.round((d-TODAY)/864e5);
   return '<span class="tag new">입주예정 '+u.moveInPlan.slice(5).replace("-","/")+' '+(n>0?"D-"+n:n===0?"오늘":"입주 "+(-n)+"일 지남")+'</span>'}
-function abOff(u){return u.name&&u.autoBill===false?'<span class="ab-off" title="자동 청구 꺼짐" aria-label="자동 청구 꺼짐">×</span>':''}
+function abOff(u){if(!u.name)return '';var a=autoState(u),t=a.ok?"자동 청구 켜짐":a.t;return '<span class="ab-dot '+(a.ok?"on":"off")+'" title="'+esc(t)+'" aria-label="'+esc(t)+'"></span>'}
 function nmHtml(u){if(!u.name)return '<span class="tag etc">공실</span>';if(u.newContract)return '<span class="new-name" title="새 계약'+(u.newAt?' · '+esc(u.newAt):'')+'">'+esc(u.name)+'</span>';return u.terminate?'<span class="term-name" title="계약 해지 예정">'+esc(u.name)+'</span>':esc(u.name)}
 function termEndCalc(base,mode,notice){if(mode==="notice"&&notice){var n=addMonths(pd(notice),3);var b0=pd(base);return fd(b0&&b0<n?b0:n)}return base}
 function setTerminate(id,on){var u=S.u[id];if(!u)return;
@@ -561,13 +567,13 @@ window.addEventListener("hashchange",function(){render(true)});
 function expList(){return ulist().filter(function(u){return u.name}).map(function(u){var e=nextExp(u),pe=(u.implied&&u.prevExpiry)?expFrom(u.prevExpiry,termOf(u)):null;
    return {u:u,e:e,pe:pe,soon:!!(e&&e.days<=WARN_DAYS)||!!(pe&&pe.days<=WARN_DAYS),todo:!!(e&&e.days<=WARN_DAYS),sd:pe?pe.days:(e?e.days:9999)}}).filter(function(x){return x.e}).sort(function(a,b){return a.sd-b.sd})}
 function renderTabs(R){var n=expList().filter(function(x){return x.todo}).length;
-  var T=[["sum","오늘"],["home","전체 현황"],["b","건물별"],["expiry","만기 알림",n],["market","매물장"],["loans","이자계산"],["costs","지출"]];
+  var T=[["sum","Home"],["home","전체 현황"],["b","건물별"],["expiry","만기 알림",n],["market","매물장"],["loans","이자계산"],["costs","지출"]];
   var on={cost:"costs",sum:"sum",home:"home",b:"b",u:"b",exp:"expiry",m:"market",loans:"loans"}[R.v];
   $("#tabs").innerHTML=T.map(function(t){return '<button type="button" class="tab'+(on===t[0]?" on":"")+'" data-go="'+(t[0]==="b"?"b-"+(curBid(R)||firstBid()):t[0])+'">'+t[1]+(t[2]?'<span class="cnt">'+t[2]+'</span>':"")+'</button>'}).join("")}
 function firstBid(){var b=blist()[0];return b?b.id:""}
 function curBid(R){if(R.v==="b"||R.v==="m")return R.id;if(R.v==="u"&&S.u[R.id])return S.u[R.id].bid;return ""}
 function renderJump(R){var bid=curBid(R)||"";var uid=R.v==="u"?R.id:"";
-  var c=R.v==="sum"?'<b>오늘의 요약</b>':'<a href="#home">전체 현황</a>';
+  var c=R.v==="sum"?'<b>Home</b>':'<a href="#home">전체 현황</a>';
   if(R.v==="exp")c+='<span class="sep">›</span><b>만기 알림</b>';
   if(R.v==="cost")c+='<span class="sep">›</span><b>지출</b>';
   if(R.v==="loans")c+='<span class="sep">›</span><b>이자계산</b>';
@@ -602,14 +608,14 @@ function collect(ym,cut){var c={exp:0,got:0,nob:0,unp:0};
 function sumLink(u,right,sub){return '<a class="sl" href="#u-'+u.id+'"><span class="sl-l"><b>'+esc(bname(u.bid))+' '+esc(u.ho)+'</b> '+(u.name?esc(u.name):'<span class="muted">공실</span>')+(sub?'<em>'+sub+'</em>':'')+'</span><span class="sl-r num">'+right+'</span></a>'}
 function viewSum(){
   var all=ulist(),occ=all.filter(function(u){return u.name&&monthly(u)>0}),Y=TODAY.getFullYear(),M=TODAY.getMonth();
-  var h='<div class="sum-head"><div><p class="sum-k">오늘의 요약</p><h2>'+TODAY.getFullYear()+'년 '+(M+1)+'월 '+TODAY.getDate()+'일 '+WD[TODAY.getDay()]+'요일</h2></div><a class="btn" href="#home">전체 현황 보기 ›</a></div>';
-  /* 1. 오늘 챙길 일 */
-  var today=occ.filter(function(u){var d=payDate(u,Y,M);return d&&+d===+TODAY});
-  var week=[];for(var k=1;k<=7;k++){var dd=new Date(Y,M,TODAY.getDate()+k);occ.forEach(function(u){var d=payDate(u,dd.getFullYear(),dd.getMonth());if(d&&+d===+dd)week.push({u:u,d:dd})})}
-  var late=all.map(function(u){var x=unpaid(u);return {u:u,x:x,m:monthly(u)>0?x/monthly(u):0}}).filter(function(o){return o.x>0&&!underLimit(o.u,o.x)}).sort(function(a,b){return b.m-a.m||b.x-a.x}).slice(0,5);
-  var t1='<div class="sum-sec"><h4>오늘 차임일<span>'+today.length+'곳</span></h4>'+(today.length?today.map(function(u){var b=billOf(u,YM),st=!b.has?'<span class="tag etc">청구 전</span>':b.paid>=b.due?'<span class="tag paid">입금완료</span>':b.paid>0?'<span class="tag warn">일부입금</span>':'<span class="tag bad">미입금</span>';return sumLink(u,won(b.has?b.due:monthly(u))+' '+st)}).join(""):'<p class="sum-none">오늘 차임일인 호실이 없습니다.</p>')+'</div>';
-  t1+='<div class="sum-sec"><h4>이번 주 차임일<span>'+week.length+'곳</span></h4>'+(week.length?week.map(function(o){return sumLink(o.u,won(monthly(o.u)),mdw(o.d))}).join(""):'<p class="sum-none">앞으로 7일 안에 차임일인 호실이 없습니다.</p>')+'</div>';
-  t1+='<div class="sum-sec"><h4>오래 밀린 미납<span>상위 5곳</span></h4>'+(late.length?late.map(function(o){return sumLink(o.u,'<span class="pos">'+won(o.x)+'</span>'+(monthsOf(o.u,o.x)?'<span class="mon">'+monthsOf(o.u,o.x)+'</span>':''))}).join(""):'<p class="sum-none">미납이 없습니다.</p>')+'</div>';
+  var h='<div class="sum-head"><div><p class="sum-k">HOME</p><h2>'+TODAY.getFullYear()+'년 '+(M+1)+'월 '+TODAY.getDate()+'일 '+WD[TODAY.getDay()]+'요일</h2></div><a class="btn" href="#home">전체 현황 보기 ›</a></div>';
+  /* 1. 핵심 지표 (간단하게) */
+  var tt=totals(all),exn=expList().filter(function(x){return x.todo}).length,spend=loanMonthly()+expMonthly()+jongYear()/12,net=tt.rent+tt.mgmt-spend;
+  var man=function(x){return won(Math.round(x))};
+  var tile=function(l,n,u,attr,cls){return '<'+(attr?'button type="button" '+attr:'div')+' class="stile'+(cls?" "+cls:"")+'"><span class="l">'+l+'</span><span class="n num">'+n+(u?'<small>'+u+'</small>':'')+'</span></'+(attr?'button':'div')+'>'};
+  h+='<div class="stiles">'+tile("입주 세대",tt.occ+'<small> / '+tt.n+'</small>',"")+tile("보증금 합계",man(tt.dep/1e4),"만원")+tile("월세 + 관리비",man((tt.rent+tt.mgmt)/1e4),"만원")+
+    tile("미납 합계",man(tt.un/1e4),"만원",'data-act="filter-unpaid"',tt.un>0?"bad":"")+tile("만기 3개월 이내",exn,"세대",'data-go="expiry"',exn?"warn":"")+
+    tile("한 달 지출",man(spend/1e4),"만원",'data-go="costs"')+tile("월 순수익",man(net/1e4),"만원",'data-go="costs"',net<0?"bad":"good")+'</div>';
   /* 2. 이번 달 수금 */
   var c=collect(YM),pc=c.exp?Math.round(c.got/c.exp*100):0;
   var lm=new Date(Y,M-1,1),lcut=fd(new Date(lm.getFullYear(),lm.getMonth(),Math.min(TODAY.getDate(),dim(lm.getFullYear(),lm.getMonth())))),c2=collect(fd(lm).slice(0,7),lcut),pc2=c2.exp?Math.round(c2.got/c2.exp*100):0,dp=pc-pc2;
@@ -627,7 +633,7 @@ function viewSum(){
   ev.sort(function(a,b){return a.d-b.d});
   var t3='<div class="card sum-card"><div class="card-h"><h3>다가오는 일정<span class="sub">3개월 안 · '+ev.length+'건</span></h3><a class="btn sm" href="#expiry">만기 알림 ›</a></div>'+
     (ev.length?ev.map(function(o){var n=Math.round((o.d-TODAY)/864e5);return '<a class="sl ev" href="#u-'+o.u.id+'"><span class="ev-d num"><b>'+mdw(o.d)+'</b><em>'+(n?'D-'+n:'오늘')+'</em></span><span class="sl-l"><span class="tag '+o.k+'">'+o.t+'</span> <b>'+esc(bname(o.u.bid))+' '+esc(o.u.ho)+'</b> '+esc(o.u.name)+'</span></a>'}).join(""):'<p class="sum-none">3개월 안에 만기·퇴실·입주 일정이 없습니다.</p>')+'</div>';
-  h+='<div class="sum-grid"><div class="card sum-card sum-today"><div class="card-h"><h3>오늘 챙길 일</h3></div>'+t1+'</div><div class="sum-col">'+t2+t3+'</div></div>';
+  h+='<div class="sum-grid">'+t2+t3+'</div>';
   /* 4. 건물 카드 */
   h+='<div class="card-h" style="margin-top:6px"><h3>건물</h3></div><div class="bc-grid">'+blist().map(function(b){var us=ulist(b.id),t=totals(us),net=t.rent+t.mgmt-loanMonthly(b.id)-expMonthly(b.id),ph=S.ph[b.id];if(ph===undefined)loadPhoto(b.id);
     return '<a class="bc" href="#b-'+b.id+'"><span class="bc-ph">'+(ph&&ph.data?'<img src="'+ph.data+'" alt="">':namuTree(44))+'</span><span class="bc-b"><b>'+esc(b.name)+'</b>'+
@@ -653,7 +659,6 @@ function viewHome(){
   var all=ulist(),t=totals(all),ex=expList().filter(function(x){return x.todo}),
       due=all.filter(function(u){return monthState(u).k==="bad"}).length,interest=loanMonthly();
   var h='<section class="hero"><div class="hero-body"><p class="eyebrow">NAMU · 임대 현황</p><h1>전체 현황<small>'+blist().length+'개 건물 · '+t.n+'세대</small></h1>'+
-   '<p class="lead">건물을 고르면 그 건물만, 호실을 누르면 세입자 정보와 입금내역이 열립니다. 바꾼 내용은 바로 저장되어 휴대폰·PC 어디서나 같습니다.</p>'+
    '<div class="hero-acts"><span class="auto-note">● 호실마다 차임일 당일에 청구 줄이 자동으로 들어갑니다</span></div></div>'+
    '<div class="panel"><p class="panel-t">핵심 지표 <span style="letter-spacing:0;font-weight:400">'+YM.replace("-",". ")+'월 기준</span></p><div class="kpis">'+
    '<div class="kpi"><span class="l">입주 세대</span><span class="n num">'+t.occ+'<small>/ '+t.n+'</small></span><span class="s">공실 '+(t.n-t.occ)+'</span></div>'+
@@ -666,17 +671,20 @@ function viewHome(){
   var bs=blist().filter(function(b){return ulist(b.id).length});
   h+='<div class="bar"><div class="chips"><button type="button" class="chip'+(S.filter==="all"?" on":"")+'" data-filter="all">전체<em>'+t.n+'</em></button>'+
    bs.map(function(b){return '<button type="button" class="chip'+(S.filter===b.id?" on":"")+'" data-filter="'+b.id+'">'+esc(b.name)+'<em>'+ulist(b.id).length+'</em></button>'}).join("")+
-   '<button type="button" class="chip'+(S.filter==="unpaid"?" on":"")+'" data-filter="unpaid">미납만</button></div>'+
-   '<span class="legend"><span><i style="background:var(--renew-bg)"></i>묵시적갱신</span><span><i style="background:var(--term-bg)"></i>계약 해지</span><span><i style="background:var(--new-bg)"></i>새 계약</span></span>'+
+   '<button type="button" class="chip'+(S.filter==="unpaid"?" on":"")+'" data-filter="unpaid">미납만</button>'+
+   '<button type="button" class="chip'+(S.filter==="exp"?" on":"")+'" data-filter="exp" title="3개월 안에 만기 또는 계약 해지 종료">만기<em>'+ex.length+'</em></button>'+
+   '<button type="button" class="chip'+(S.filter==="new"?" on":"")+'" data-filter="new">새 계약<em>'+all.filter(function(u){return u.newContract}).length+'</em></button></div>'+
+   '<span class="legend"><span><i style="background:var(--renew-bg)"></i>묵시적갱신</span><span><i style="background:var(--term-bg)"></i>계약 해지</span><span><i style="background:var(--new-bg)"></i>새 계약</span><span><b class="dot-l" style="background:var(--teal)"></b>자동 청구</span><span><b class="dot-l" style="background:var(--bad)"></b>자동 청구 안 함</span></span>'+
    (S.filter==="all"&&!S.q?'<button type="button" class="btn sm" data-act="fold-all">모두 접기</button><button type="button" class="btn sm" data-act="unfold-all">모두 펼치기</button>':'')+
    '<input class="search" id="q" type="search" placeholder="이름 · 호수 · 번호 검색" value="'+esc(S.q)+'" aria-label="검색"></div>';
-  var groups=bs.filter(function(b){return S.filter==="all"||S.filter==="unpaid"||S.filter===b.id}).map(function(b){
-    var us=ulist(b.id).filter(matchQ).filter(function(u){return S.filter!=="unpaid"||unpaid(u)>0});return {b:b,us:us}}).filter(function(g){return g.us.length});
+  var SPF={unpaid:1,exp:1,new:1},exIds={};ex.forEach(function(x){exIds[x.u.id]=1});
+  var groups=bs.filter(function(b){return S.filter==="all"||SPF[S.filter]||S.filter===b.id}).map(function(b){
+    var us=ulist(b.id).filter(matchQ).filter(function(u){return S.filter==="unpaid"?unpaid(u)>0:S.filter==="exp"?!!exIds[u.id]:S.filter==="new"?!!u.newContract:true});return {b:b,us:us}}).filter(function(g){return g.us.length});
   if(!groups.length){h+='<div class="card empty">조건에 맞는 호실이 없습니다.</div>';return h}
   var tb='<div class="card only-wide"><div class="scroller" data-sk="home"><table class="tbl"><thead><tr><th class="l stick">호수</th><th class="l">임차인</th><th class="l">연락처</th><th>보증금</th><th title="월세와 관리비를 더한 금액">월세+관리비</th><th class="c">차임일</th><th class="c">입주일</th><th class="c">만기일</th><th class="c">최근 청구</th><th>미납 금액</th><th title="미납이 이 금액 이하이면 회색으로 표시">기준금액</th><th class="l">비고</th><th class="l">입금 입력 <span style="font-weight:400">(최근 청구에 기록)</span></th></tr></thead><tbody>';
   var cards='<div class="only-narrow">';var ft={dep:0,rent:0,mgmt:0,un:0};
   groups.forEach(function(g){var gt=totals(g.us);ft.dep+=gt.dep;ft.rent+=gt.rent;ft.mgmt+=gt.mgmt;ft.un+=gt.un+gt.pre;
-    var shut=!S.q&&S.filter!=="unpaid"&&!!S.fold[g.b.id];
+    var shut=!S.q&&!SPF[S.filter]&&!!S.fold[g.b.id];
     tb+='<tr class="grp"><td class="l stick" colspan="3"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'" title="접기 / 펼치기"><span class="fold'+(shut?" shut":"")+'">▼</span><span class="gname">'+esc(g.b.name)+'</span></button> <span class="muted" style="font-weight:400">'+gt.occ+'/'+gt.n+'세대</span><a class="glink" href="#b-'+g.b.id+'">건물 보기 ›</a></td><td class="num">'+won(gt.dep)+'</td><td class="num">'+won(gt.rent+gt.mgmt)+'</td><td colspan="4"></td><td class="num '+((gt.un+gt.pre)>0?"pos":"")+'">'+won(gt.un+gt.pre)+'</td><td colspan="3"></td></tr>';
     if(!shut)tb+=g.us.map(unitRow).join("");
     cards+='<div class="ugrp"><div class="ugrp-h"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'"><span class="fold'+(shut?" shut":"")+'">▼</span><b>'+esc(g.b.name)+'</b></button><span class="num">월 '+won(gt.rent+gt.mgmt)+' · 미납 '+won(gt.un)+'</span></div>'+(shut?'':g.us.map(unitCard).join(""))+'</div>'});

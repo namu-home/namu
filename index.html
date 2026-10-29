@@ -64,7 +64,6 @@ button{cursor:pointer}
 .namu-word span{color:var(--word2)}
 #logo svg{display:block}
 .brand-logo{display:block;height:44px;width:auto}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand-logo{background:#ffffff;border-radius:10px;padding:2px 6px}}:root[data-theme="dark"] .brand-logo{background:#ffffff;border-radius:10px;padding:2px 6px}
 .bc-ph img.bc-thumb{object-fit:contain;padding:6px;background:#ffffff}
 .wh-chip{font-size:12px;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--line2);border-radius:999px;padding:2px 11px 2px 9px;white-space:nowrap}
 .wh-chip i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--chip-dot);margin-right:6px;vertical-align:1px}
@@ -369,7 +368,8 @@ input[type=date]::-webkit-datetime-edit{display:inline-flex;justify-content:cent
 /* 로그인 · 관리 */
 .lg-bg{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-left,0px))}
 .lg-card{width:min(400px,100%);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px 24px;box-shadow:0 20px 50px -24px var(--shadow);display:flex;flex-direction:column;gap:10px}
-.lg-brand{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:6px}
+.lg-brand{display:flex;flex-direction:column;align-items:center;gap:8px;justify-content:center;margin-bottom:10px}.lg-brand img{display:block;width:min(260px,80%);height:auto}
+.splash-logo{display:block;width:min(240px,70vw);height:auto;margin:0 auto 16px}
 .lg-brand b{font-family:var(--brand);font-size:30px;color:var(--word);letter-spacing:.04em}.lg-brand b span{color:var(--word2)}
 .lg-brand em{font-style:normal;font-size:13px;font-weight:700;color:var(--muted);background:var(--surface2);border-radius:999px;padding:2px 10px}
 #lg-form{display:flex;flex-direction:column;gap:6px}
@@ -435,7 +435,7 @@ button.stile{cursor:pointer}button.stile:hover{background:var(--hover)}
 </div></header>
 <div class="jump"><div class="jump-in gut" id="jump"></div></div>
 <div id="login" class="lg-bg" hidden></div>
-<main class="gut" id="view"><div class="splash"><b>주택관리 데이터를 불러오는 중입니다</b>건물·호실·입금내역이 저장소에서 도착하면 바로 표시됩니다.</div></main>
+<main class="gut" id="view"><div class="splash"><img class="splash-logo" src="./logo-lg.png" alt="NAMU"><b>주택관리 데이터를 불러오는 중입니다</b>건물·호실·입금내역이 저장소에서 도착하면 바로 표시됩니다.</div></main>
 <div class="toast" id="toast" hidden></div>
 
 <script>

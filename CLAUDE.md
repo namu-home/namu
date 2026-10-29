@@ -15,7 +15,7 @@
 | `firebase-app.js` | 로그인 화면, 승인 확인, Firestore 연결(화면 코드가 쓰는 `window.claude.use("db" \| "user" \| "downloads")` 모양으로 감쌈), 관리 메뉴(사용자 승인·백업·가져오기), 서비스 워커 등록 |
 | `firestore.rules` | 접근 규칙 사본. 바꾸면 사용자가 Firebase 콘솔 → Firestore → 규칙에 붙여넣고 게시해야 반영됩니다(저장소에 올려도 자동 반영 안 됨). |
 | `manifest.webmanifest`, `sw.js`, `icon-*.png`, `namu.ico` | PC·휴대폰 설치(PWA), 앱 아이콘 |
-| `logo.png`, `thumb.png` | 왼쪽 위 로고(나무+NAMU), 사진 없는 건물 카드 그림 |
+| `logo.png`, `logo-lg.png`, `thumb.png` | 왼쪽 위 로고(흰 테두리), 로그인·불러오는 화면 큰 로고, 사진 없는 건물 카드 그림 |
 
 ## 데이터 구조 (Firestore 컬렉션)
 

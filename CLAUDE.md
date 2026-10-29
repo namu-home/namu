@@ -31,7 +31,7 @@
 
 1. `git pull` 후 `index.html`(필요하면 `firebase-app.js`)을 고칩니다. 바꾼 곳 외에는 건드리지 않습니다.
 2. 스크립트 문법을 확인합니다: `index.html`의 각 `<script>` 블록을 꺼내 `node --check`, `firebase-app.js`는 `node --check --input-type=module`.
-3. 화면을 봅니다: 로컬에서 `python3 -m http.server`로 띄우고 Playwright로 열되, `https://www.gstatic.com/firebasejs/10.12.2/*` 요청을 간단한 가짜 모듈(로그인·Firestore 메모리 저장)로 바꿔 끼워 로그인 → 화면 → 입력 저장까지 확인합니다. PC 폭과 휴대폰 폭(390px), 밝은/어두운 화면을 봅니다.
+3. 화면을 봅니다: `python3 -m http.server 8765 &` 후 `node dev/smoke-test.js` (Firebase SDK를 `dev/fbstub/`의 가짜 모듈로 바꿔 끼워 관리자 로그인까지 확인, `BACKUP=<백업 json 경로>`를 주면 가져오기까지). 백업 json은 사용자에게 받은 것을 작업 폴더 밖에만 두고 저장소에 넣지 않습니다. PC 폭과 휴대폰 폭(390px), 밝은/어두운 화면을 봅니다.
 4. 커밋 메시지는 한국어로 무엇을 바꿨는지 씁니다. `main`에 바로 push 하면 1~2분 뒤 앱에 반영됩니다.
 5. `sw.js`가 화면 파일을 저장해 두므로, 큰 변경 뒤에는 `CACHE` 이름 숫자를 올려(`namu-shell-v2` …) 새 버전을 바로 받게 합니다.
 

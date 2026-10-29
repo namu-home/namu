@@ -1,0 +1,15 @@
+const S=window.__fsStore=window.__fsStore||{};const L={};
+const col=(p)=>p.split('/').slice(0,-1).join('/');
+const snap=(p)=>({id:p.split('/').pop(),exists:()=>p in S,data:()=>S[p]&&JSON.parse(JSON.stringify(S[p])),metadata:{fromCache:false,hasPendingWrites:false}});
+const qsnap=(c)=>{const docs=Object.keys(S).filter(k=>col(k)===c).sort().map(snap);return {docs,size:docs.length,empty:!docs.length,forEach:f=>docs.forEach(f),metadata:{fromCache:false,hasPendingWrites:false}}};
+const emit=(p)=>{(L[p]||[]).forEach(f=>f(snap(p)));(L['c:'+col(p)]||[]).forEach(f=>f(qsnap(col(p))))};
+export const initializeFirestore=()=>({});export const persistentLocalCache=()=>({});export const persistentMultipleTabManager=()=>({});
+export const doc=(f,p)=>({path:p,id:p.split('/').pop()});export const collection=(f,p)=>({path:p,col:true});
+const deny=(p,w)=>{const em=window.__stubUser;if(!em)return true;if(p.startsWith('access/'))return w?em!=='matht2353@gmail.com':false;return false};
+export const getDoc=(r)=>deny(r.path)?Promise.reject({code:'permission-denied'}):Promise.resolve(snap(r.path));
+export const getDocs=(r)=>Promise.resolve(qsnap(r.path));
+export const setDoc=(r,d,o)=>{if(deny(r.path,1))return Promise.reject({code:'permission-denied'});S[r.path]=o&&o.merge?Object.assign({},S[r.path]||{},d):d;setTimeout(()=>emit(r.path));window.__writes=(window.__writes||0)+1;return Promise.resolve()};
+export const updateDoc=(r,d)=>{if(!(r.path in S))return Promise.reject({code:'not-found'});S[r.path]=Object.assign({},S[r.path],d);setTimeout(()=>emit(r.path));return Promise.resolve()};
+export const deleteDoc=(r)=>{delete S[r.path];setTimeout(()=>emit(r.path));return Promise.resolve()};
+export const onSnapshot=(r,n,e)=>{const k=r.col?'c:'+r.path:r.path;(L[k]=L[k]||[]).push(n);setTimeout(()=>n(r.col?qsnap(r.path):snap(r.path)),5);return()=>{}};
+export const runTransaction=(f,fn)=>fn({get:(r)=>Promise.resolve(snap(r.path)),set:(r,d,o)=>{S[r.path]=o&&o.merge?Object.assign({},S[r.path]||{},d):d}});

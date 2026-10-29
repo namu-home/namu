@@ -273,6 +273,9 @@ label.chk{flex-direction:row;gap:12px;align-items:flex-start}
 .new-name{display:inline-block;background:var(--new-bg);color:var(--new-fg)!important;font-weight:800;border-radius:6px;padding:1px 9px}
 .chk.on-new{border-color:var(--new-bg);background:var(--new-soft)}
 .chk.on-new input{accent-color:var(--new-bg)}
+.frn-mini{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--muted);white-space:nowrap;cursor:pointer;margin-left:6px}.frn-mini input{width:14px;height:14px;margin:0;accent-color:var(--accent)}
+.nx-card{border:1px solid var(--new-bg);background:var(--new-soft);border-radius:14px;padding:12px 14px;margin:12px 0}.nx-card .inp{background:var(--surface)}
+.nx{width:100%;display:flex;flex-direction:column;gap:8px}.nx>b{font-size:13px;color:var(--new-bg)}.nx-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px 10px;width:100%}.nx-f{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}.nx-f .inp{height:32px;width:100%}.nx-a{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.nx-h{font-size:12px;color:var(--muted)}.nx-h summary{cursor:pointer}.nx-h div{padding:3px 0;border-top:1px solid var(--line2)}
 .new-opt{padding:10px 12px;border-radius:10px;background:var(--surface);border:1px dashed var(--new-bg);display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 .tag.new{background:var(--new-soft);color:var(--new-bg)}
 .chk.on-new .chk-row > span > b{color:var(--new-bg)}
@@ -422,7 +425,7 @@ button.stile{cursor:pointer}button.stile:hover{background:var(--hover)}
 </style>
 
 <header class="hub"><div class="hub-in gut">
-  <button type="button" class="brand" data-go="sum" aria-label="NAMU 오늘의 요약으로"><span id="logo"></span><span class="namu-word">NA<span>MU</span></span><span class="wh-chip"><i></i>주택관리</span></button>
+  <button type="button" class="brand" data-go="sum" aria-label="NAMU 오늘의 요약으로"><span id="logo"></span><span class="namu-word">NA<span>MU</span></span><span class="wh-chip">주택관리</span></button>
   <nav class="tabs" id="tabs" aria-label="메뉴"></nav>
   <div class="hub-right"><span class="today num" id="today"></span><span class="who" id="who" hidden></span><span class="sync" id="sync"><i></i><span>연결 중</span></span></div>
 </div></header>
@@ -472,8 +475,18 @@ function termCalc(u){var a=pd(u.moveIn),b=pd(u.expiry);if(!a||!b||b<=a)return 12
 function termOf(u){return +u.term>0?+u.term:termCalc(u)}
 function expFrom(exp,t){var d=pd(exp);if(!d)return null;var c=d,n=0;while(c<TODAY&&n<200){n++;c=addMonths(d,t*n)}return {date:c,days:Math.round((c-TODAY)/864e5),auto:n,term:t}}
 function nextExp(u){if(u.terminate){var d=pd(u.termExpiry||u.expiry);if(!d)return null;return {date:d,days:Math.round((d-TODAY)/864e5),auto:0,term:termOf(u),ended:d<TODAY}}return expFrom(u.expiry,termOf(u))}
+/* 새 계약: 들어올 임차인 정보(units.next)를 따로 적어 두고, 입주하는 날 '입주 처리'로 지금 임차인 자리에 옮김. 나간 임차인은 units.prevTenants 에 남김 */
+var NX=[["name","이름",0],["phone","연락처",0],["deposit","보증금",1],["rent","월세",1],["mgmt","관리비",1],["payDay","차임일",1],["expiry","계약 만기",2],["memo","메모",0]];
+function nextHtml(u){var n=u.next||{},ro=S.canWrite?"":" readonly",id=u.id;if(!u.newContract)return '<div class="nx nx-card">'+prevHtml(u)+'</div>';
+  var f=function(x){var k=x[0],v=n[k];return '<label class="nx-f"><span>'+x[1]+'</span><input class="inp"'+(x[2]===2?' type="date"':'')+(x[2]===1?' inputmode="numeric"':'')+' data-nx="'+id+'|'+k+'" value="'+esc(x[2]===1?(+v?(k==="payDay"?v:won(v)):""):(v||""))+'"'+(k==="payDay"?' placeholder="일"':'')+ro+'></label>'};
+  var has=n.name||n.deposit||n.rent;
+  return '<div class="nx nx-card"><b>새로 들어올 임차인</b><div class="nx-g">'+
+    '<label class="nx-f"><span>입주 예정일</span><input class="inp" type="date" data-plan="'+id+'" value="'+esc(u.moveInPlan||"")+'"'+(S.canWrite?"":" disabled")+'></label>'+NX.map(f).join("")+'</div>'+
+    '<div class="nx-a">'+planTag(u)+(S.canWrite&&has?'<button type="button" class="btn sm p" data-act="next-apply" data-u="'+id+'" data-confirm="정말 입주 처리?">입주 처리</button><span class="topt-n">지금 임차인'+(u.name?'('+esc(u.name)+')':'')+'을 나간 임차인 기록으로 옮기고, 위 정보로 바꿉니다. 입금내역은 그대로 남습니다.</span>':'<span class="topt-n">새 임차인 이름과 조건을 적어 두고, 입주하는 날 <b>입주 처리</b>를 누르면 지금 임차인 자리에 들어갑니다.</span>')+'</div>'+
+    prevHtml(u)+'</div>'}
+function prevHtml(u){return (u.prevTenants||[]).length?'<details class="nx-h"><summary>나간 임차인 '+u.prevTenants.length+'명</summary>'+u.prevTenants.slice().reverse().map(function(o){return '<div>'+esc(o.out||"")+' 퇴실 · <b>'+esc(o.name||"")+'</b> '+esc(o.phone||"")+' · 보증금 '+won(o.deposit)+' · 월세 '+won(o.rent)+(+o.mgmt?' · 관리비 '+won(o.mgmt):'')+(o.moveIn?' · '+esc(o.moveIn)+'~'+esc(o.expiry||""):'')+'</div>'}).join("")+'</details>':''}
 function planTag(u){if(!u.newContract||!u.moveInPlan)return "";var d=pd(u.moveInPlan);if(!d)return "";var n=Math.round((d-TODAY)/864e5);
-  return '<span class="tag new">입주예정 '+u.moveInPlan.slice(5).replace("-","/")+' '+(n>0?"D-"+n:n===0?"오늘":"입주 "+(-n)+"일 지남")+'</span>'}
+  return '<span class="tag new">입주예정 '+u.moveInPlan.slice(5).replace("-","/")+' '+(n>0?"D-"+n:n===0?"오늘":"입주 "+(-n)+"일 지남")+(u.next&&u.next.name?' · '+esc(u.next.name):'')+'</span>'}
 function abOff(u){if(!u.name)return '';var a=autoState(u),t=a.ok?"자동 청구 켜짐":a.t;return '<span class="ab-dot '+(a.ok?"on":"off")+'" title="'+esc(t)+'" aria-label="'+esc(t)+'"></span>'}
 function nmHtml(u){if(!u.name)return '<span class="tag etc">공실</span>';if(u.newContract)return '<span class="new-name" title="새 계약'+(u.newAt?' · '+esc(u.newAt):'')+'">'+esc(u.name)+'</span>';return u.terminate?'<span class="term-name" title="계약 해지 예정">'+esc(u.name)+'</span>':esc(u.name)}
 function termEndCalc(base,mode,notice){if(mode==="notice"&&notice){var n=addMonths(pd(notice),3);var b0=pd(base);return fd(b0&&b0<n?b0:n)}return base}
@@ -750,14 +763,14 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
    '<span class="nav">'+(prev?'<a class="btn sm" href="#u-'+prev.id+'">‹ '+esc(prev.ho)+'</a>':'')+(next?'<a class="btn sm" href="#u-'+next.id+'">'+esc(next.ho)+' ›</a>':'')+'</span></div>';
   h+='<div class="card"><div class="card-h"><h3>세입자 · 임대 조건</h3>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="del-unit" data-u="'+id+'" data-confirm="호실 삭제?">호실 삭제</button>':'')+'</div>'+
    '<div class="ugrid">'+
-   '<section class="usec"><h4>임차인</h4>'+kv("임차인","unit:"+id+":name",u.name,ro)+kv("연락처","unit:"+id+":phone",u.phone,ro)+kv("호수","unit:"+id+":ho",u.ho,ro)+kv("방 구조","unit:"+id+":type",u.type,ro)+kv("전용면적","unit:"+id+":area",u.area,ro,0,"㎡")+'</section>'+
+   '<section class="usec"><h4>임차인</h4>'+kv("임차인","unit:"+id+":name",u.name,ro).replace('</div></div>','<label class="frn-mini" title="외국인이면 허그 선순위 계산 때 최우선변제금 4,800만 원으로 넣습니다"><input type="checkbox" data-frn="'+id+'"'+(u.foreign?" checked":"")+(S.canWrite?"":" disabled")+'>외국인</label></div></div>')+kv("연락처","unit:"+id+":phone",u.phone,ro)+kv("호수","unit:"+id+":ho",u.ho,ro)+kv("방 구조","unit:"+id+":type",u.type,ro)+kv("전용면적","unit:"+id+":area",u.area,ro,0,"㎡")+'</section>'+
    '<section class="usec"><h4>임대 조건</h4>'+kv("보증금","unit:"+id+":deposit",u.deposit,ro,1,"원")+kv("월세","unit:"+id+":rent",u.rent,ro,1,"원")+kv("관리비","unit:"+id+":mgmt",u.mgmt,ro,1,"원")+kv("차임일","unit:"+id+":payDay",u.payDay,ro,1,"일")+kv("이월 금액","unit:"+id+":carry",u.carry,ro,1,"원")+kv("미납 기준","unit:"+id+":limit",u.limit,ro,1,"원")+'</section>'+
    '<section class="usec"><h4>계약 기간</h4>'+kv("입주일","unit:"+id+":moveIn",u.moveIn,ro,0,"","date")+kv("계약 만기","unit:"+id+":expiry",u.expiry,ro,0,"","date")+kv("계약기간","unit:"+id+":term",u.term||termCalc(u),ro,1,"개월")+
      '<div class="kv"><label>현재 만기</label><div class="kv-v">'+(e?(expPill(u,e)||'<b class="num">'+fd(e.date)+'</b>')+' '+expTag(u):'<span class="muted">만기일을 넣어 주세요</span>')+'</div></div></section>'+
    '<div class="chks">'+
      '<div class="chk'+(u.newContract?' on-new':'')+'"><label class="chk-row"><input type="checkbox" data-newc="'+id+'"'+(u.newContract?" checked":"")+(S.canWrite?"":" disabled")+'><span><b>새 계약</b><small>'+(u.newContract?'새 계약'+(u.newAt?' ('+esc(u.newAt)+' 표시)':''):'새로 계약하면 체크하세요. 이름이 파란 배경으로 표시됩니다')+'</small></span></label>'+
        (u.newContract?'<div class="new-opt"><div class="topt-d"><label for="mp-'+id+'">입주 예정일</label><input class="inp" type="date" id="mp-'+id+'" data-plan="'+id+'" value="'+esc(u.moveInPlan||"")+'"'+(S.canWrite?"":" disabled")+'>'+planTag(u)+'</div>'+
-         (u.moveInPlan&&S.canWrite?'<button type="button" class="btn sm" data-act="plan-apply" data-u="'+id+'">입주일로 적용</button><span class="topt-n">입주일을 '+esc(u.moveInPlan)+'로 바꿉니다. 계약 만기도 새 계약 날짜로 맞춰 주세요.</span>':'<span class="topt-n">입주 예정일을 넣으면 전체 현황에 \'입주예정\'으로 표시됩니다.</span>')+'</div>':'')+
+         '<span class="topt-n">아래 <b>새로 들어올 임차인</b> 칸에 정보를 적으세요.</span></div>':'')+
      '</div>'+
      '<div class="chk'+(u.terminate?' on-term':'')+'"><label class="chk-row"><input type="checkbox" data-term="'+id+'"'+(u.terminate?" checked":"")+(S.canWrite?"":" disabled")+'><span><b>계약 해지</b><small>'+(u.terminate&&e?'묵시적갱신 없이 <b>'+fd(e.date)+'</b>에 계약 종료 ('+(e.days<0?(-e.days)+"일 지남":e.days===0?"오늘":"D-"+e.days)+')':(isRenewed(u,e)?'이미 묵시적갱신된 계약은 해지를 알린 날부터 3개월 뒤에 끝납니다':'체크하면 묵시적갱신 없이 현재 만기일에 계약이 끝납니다'))+'</small></span></label>'+
        (u.terminate&&u.termRenewed?'<div class="term-opt"><div class="topt-h">묵시적갱신된 계약 · 해지 시점</div>'+
@@ -767,9 +780,9 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
          '<p class="topt-n">묵시적갱신 뒤에는 임차인이 언제든 해지를 알릴 수 있고, 알린 날부터 3개월이 지나면 해지됩니다(주택임대차보호법 제6조의2).</p></div>':'')+
      '</div>'+
      '<label class="chk'+(u.autoBill!==false?' on-auto':'')+'"><input type="checkbox" data-auto="'+id+'"'+(u.autoBill!==false?" checked":"")+(S.canWrite?"":" disabled")+'><span><b>자동 청구</b><small>'+esc(autoState(u).t)+'</small></span></label>'+
-     '<label class="chk'+(u.foreign?' on-frn':'')+'"><input type="checkbox" data-frn="'+id+'"'+(u.foreign?" checked":"")+(S.canWrite?"":" disabled")+'><span><b>외국인</b><small>허그 보증보험 선순위 계산 때 최우선변제금 4,800만 원으로 넣습니다</small></span></label>'+
    '</div>'+
    '</div>'+
+   (u.newContract||(u.prevTenants||[]).length?nextHtml(u):'')+
    '<div class="memo-box"><label for="f-unit-'+id+'-memo">비고</label><textarea class="inp memo-ta" id="f-unit-'+id+'-memo" data-f="unit:'+id+':memo" rows="3"'+ro+'>'+esc(u.memo)+'</textarea></div>'+
    (e&&!u.terminate?'<p class="note">계약기간 '+termOf(u)+'개월(입주일~만기일) 기준으로 '+(isRenewed(u,e)?'묵시적갱신된 ':'')+'현재 만기를 계산합니다. 만기 3개월 전부터 만기 알림에 표시됩니다.'+(u.implied&&u.prevExpiry?' (만기 알림에서 갱신 체크: '+esc(u.prevExpiry)+' → '+esc(u.expiry)+')':'')+'</p>':'')+'</div>';
   var tDue=0,tPaid=0;rs.forEach(function(r){if(rowDue(r)>0)tDue+=rowDue(r);tPaid+=rowPaid(r)});
@@ -890,7 +903,7 @@ function curCols(){var c={buildings:{},units:{},ledgers:{},market:{},meta:{}};
   Object.keys(S.l).forEach(function(k){c.ledgers[k]={rows:S.l[k]}});
   Object.keys(S.m).forEach(function(k){var d=JSON.parse(JSON.stringify(S.m[k]));delete d.id;c.market[k]=d});
   if(S.got.loans)c.meta.loans={rows:S.loans};if(S.got.hug&&S.hug)c.meta.hug=S.hug;if(S.got.exp)c.meta.expenses={rows:S.exp.rows||[],jong:jongRows()};return c}
-var FL={name:"임차인",phone:"연락처",ho:"호수",type:"방 구조",deposit:"보증금",rent:"월세",mgmt:"관리비",payDay:"차임일",moveIn:"입주일",expiry:"계약 만기",term:"계약기간",carry:"이월 금액",limit:"미납 기준",memo:"비고",autoBill:"자동 청구",terminate:"계약 해지",termExpiry:"해지 종료일",newContract:"새 계약",moveInPlan:"입주 예정일",implied:"묵시적갱신 체크",price:"매매가",loan:"융자",rate:"이율",addr:"소재지",comp:"세대 현황",footer:"하단 문구",rows:"내용",hugAppr:"감정평가액",hugPrelim:"예비 감정평가",hugMulti:"다세대 계산",hugRefUnit:"기준 호실",hugRefPrice:"기준 호실 감정평가금액",area:"전용면적",pub:"공시가격",hugPub:"공시가격",hugMort:"근저당권 합계"};
+var FL={name:"임차인",phone:"연락처",ho:"호수",type:"방 구조",deposit:"보증금",rent:"월세",mgmt:"관리비",payDay:"차임일",moveIn:"입주일",expiry:"계약 만기",term:"계약기간",carry:"이월 금액",limit:"미납 기준",memo:"비고",autoBill:"자동 청구",terminate:"계약 해지",termExpiry:"해지 종료일",newContract:"새 계약",moveInPlan:"입주 예정일",implied:"묵시적갱신 체크",price:"매매가",loan:"융자",rate:"이율",addr:"소재지",comp:"세대 현황",footer:"하단 문구",rows:"내용",hugAppr:"감정평가액",hugPrelim:"예비 감정평가",hugMulti:"다세대 계산",hugRefUnit:"기준 호실",hugRefPrice:"기준 호실 감정평가금액",area:"전용면적",next:"새 임차인",prevTenants:"나간 임차인",pub:"공시가격",hugPub:"공시가격",hugMort:"근저당권 합계"};
 function ulabel(id,cols){var u=(cols.units[id])||S.u[id]||{};return bname(u.bid)+" "+(u.ho||id)+(u.name?" "+u.name:"")}
 function ledUnpaid(rows,uid,cols){var u=cols.units[uid]||S.u[uid]||{};return (+u.carry||0)+(rows||[]).reduce(function(s,r){return s+rowUnpaid(r)},0)}
 function diffCols(f,c){var out=[],cols=["buildings","units","ledgers","market","meta"];
@@ -1247,8 +1260,8 @@ document.addEventListener("change",function(e){var t=e.target,a;
   if((a=t.getAttribute("data-tnotice"))){setTermOpt(a,"notice",t.value);t.blur();render();return}
   if((a=t.getAttribute("data-plan"))){saveUnit(a,{moveInPlan:t.value});t.blur();render();return}
   if((a=t.getAttribute("data-newc"))){var pt={newContract:t.checked,newAt:t.checked?fd(TODAY):""};var uu=S.u[a];
-    if(t.checked&&uu&&uu.terminate){pt.terminate=false;pt.termExpiry="";pt.termBase="";pt.termMode="";pt.noticeDate="";pt.termRenewed=false}
-    saveUnit(a,pt);toast(t.checked?(uu.ho+" 새 계약으로 표시했습니다"+(pt.terminate===false?" (계약 해지는 풀었습니다)":"")):(uu.ho+" 새 계약 표시를 풀었습니다"));t.blur();render();return}
+    saveUnit(a,pt);toast(t.checked?(uu.ho+" 새 계약으로 표시했습니다. 아래에 새 임차인 정보를 적을 수 있습니다"):(uu.ho+" 새 계약 표시를 풀었습니다"));t.blur();render();return}
+  if((a=t.getAttribute("data-nx"))){var q8=a.split("|"),nu=S.u[q8[0]];if(!nu)return;var nx=Object.assign({},nu.next||{}),k8=q8[1];nx[k8]=(k8==="deposit"||k8==="rent"||k8==="mgmt"||k8==="payDay")?toNum(t.value):t.value;saveUnit(q8[0],{next:nx});sched();return}
   if((a=t.getAttribute("data-frn"))){saveUnit(a,{foreign:t.checked});t.blur();render();return}
   if((a=t.getAttribute("data-hug"))){var q7=a.split("|"),hb=q7[0],hf=q7[1],hv=t.value;if(hf==="hugAppr"||hf==="hugPub"||hf==="hugPrice"||hf==="hugMort"||hf==="hugDep"||hf==="hugRefPrice")hv=toNum(hv);else if(hf==="hugLord"||hf==="hugTen")hv=hv===""?"":toNum(hv);var o7={};o7[hf]=hv;if(hf==="hugUnit")o7.hugDep=0;saveBld(hb,o7);if(t.tagName==="SELECT"){t.blur();render()}else sched();return}
   if((a=t.getAttribute("data-huglord"))){saveBld(a,{hugLordIssued:t.checked});t.blur();render();return}
@@ -1325,6 +1338,12 @@ document.addEventListener("click",function(e){
   else if(act==="exp-soon"){S.showAllExp=false;render()} else if(act==="exp-all"){S.showAllExp=true;render()}
   else if(act==="add-row"){var u=S.u[uid];var rs=S.l[uid]=rows(uid).slice();rs.push(newRow(u));saveLedger(uid);render();toast("청구 줄을 추가했습니다: "+rs[rs.length-1].due)}
   else if(act==="add-pay"){var rs4=S.l[uid]=rows(uid).slice();var at=i+1;while(at<rs4.length&&rs4[at].sub)at++;rs4.splice(at,0,{sub:true,due:"",rent:0,mgmt:0,rDate:fd(TODAY),rType:"",rAmt:0,mDate:"",mType:"",mAmt:0,note:"추가 입금"});saveLedger(uid);render();toast("추가 입금 줄을 넣었습니다. 날짜와 금액을 적어 주세요.")}
+  else if(act==="next-apply"){var cu2=S.u[uid],nx2=cu2.next||{};if(!(nx2.name||nx2.deposit||nx2.rent)){toast("새 임차인 정보를 먼저 적어 주세요.");return}
+    var old={name:cu2.name||"",phone:cu2.phone||"",deposit:+cu2.deposit||0,rent:+cu2.rent||0,mgmt:+cu2.mgmt||0,moveIn:cu2.moveIn||"",expiry:cu2.expiry||"",out:fd(TODAY)};
+    var pa={name:nx2.name||"",phone:nx2.phone||"",deposit:+nx2.deposit||0,rent:+nx2.rent||0,mgmt:nx2.mgmt!=null&&nx2.mgmt!==""?(+nx2.mgmt||0):(+cu2.mgmt||0),moveIn:cu2.moveInPlan||fd(TODAY),expiry:nx2.expiry||"",term:0,
+      terminate:false,termExpiry:"",termBase:"",termMode:"",noticeDate:"",termRenewed:false,implied:false,prevExpiry:"",origExpiry:"",newContract:true,newAt:fd(TODAY),moveInPlan:"",next:{},
+      prevTenants:(cu2.prevTenants||[]).concat(old.name||old.deposit?[old]:[])};
+    if(+nx2.payDay)pa.payDay=+nx2.payDay;if(nx2.memo)pa.memo=nx2.memo;saveUnit(uid,pa);render();toast(cu2.ho+" 새 임차인 "+(pa.name||"")+"으로 입주 처리했습니다.")}
   else if(act==="plan-apply"){var up=S.u[uid];saveUnit(uid,{moveIn:up.moveInPlan});render();toast(up.ho+" 입주일을 "+up.moveIn+"로 바꿨습니다.")}
   else if(act==="qpay"){submitQpay(uid)}
   else if(act==="imp-open"){openImport()}

@@ -1108,7 +1108,10 @@ function hugPrior(u){var d=+u.deposit||0;
   if(!u.name)return {amt:HUG_FRN,why:"공실 · 4,800만 원으로 가정",vac:true};
   return {amt:d,why:""}}
 /* 감정평가액(hugAppr)과 공시가격(hugPub) 두 칸. 예전 한 칸(hugPrice+hugSrc) 자료도 그대로 읽음 */
-function hugAppr(b){return b.hugAppr!=null?(+b.hugAppr||0):(b.hugSrc!=="pub"?(+b.hugPrice||0):0)}
+/* 다세대(현화리): 감정평가 받은 기준 호실 금액 ÷ 그 면적 = 1㎡당 금액, × 전체 호실 면적 합 = 건물 감정평가액 */
+function hugMultiPrice(b){if(!b||!b.hugMulti)return 0;var ru=b.hugRefUnit&&S.u[b.hugRefUnit],ra=ru?(+ru.area||0):0;if(!(ra>0)||!(+b.hugRefPrice>0))return 0;var bid=b.id||(ru&&ru.bid);
+  return (+b.hugRefPrice)/ra*ulist(bid).reduce(function(s2,u){return s2+(+u.area||0)},0)}
+function hugAppr(b){var mp=hugMultiPrice(b);if(mp>0)return mp;return b.hugAppr!=null?(+b.hugAppr||0):(b.hugSrc!=="pub"?(+b.hugPrice||0):0)}
 function hugPub(b){return b.hugPub!=null?(+b.hugPub||0):(b.hugSrc==="pub"?(+b.hugPrice||0):0)}
 function hugSrcOf(b){if(b.hugPrelim)return hugPub(b)>0?"pub":"";var a=hugAppr(b),pu=hugPub(b),v=hugValid(b);if(a>0&&(!v||v.ok||!pu))return "appr";if(pu>0)return "pub";return ""}
 S.hugView={};
@@ -1136,7 +1139,7 @@ function hugMultiHtml(bid,c){var m=c.multi;if(!m)return "";var b=S.b[bid],ro=S.c
     '<div class="scroller"><table class="tbl edit"><thead><tr><th>호수</th><th>전용면적 (㎡)</th><th>주택가격<br><small>면적 × 1㎡당</small></th><th>보증금</th><th>담보<br><small>근저당 × 면적 비율</small></th><th>부채<br><small>보증금 + 담보</small></th><th>임대인 비율<br><small>기준 '+pc(sd.ld)+'</small></th><th>임차인 비율<br><small>주택가격 90% · 기준 '+pc(sd.td)+'</small></th></tr></thead><tbody>'+
     m.rows.map(function(r){return '<tr'+(c.cu&&c.cu.id===r.u.id?' class="cur"':'')+'><td>'+esc(r.u.ho)+'</td><td><input class="cell s" inputmode="decimal" data-f="unit:'+r.u.id+':area" value="'+(r.a||"")+'"'+ro+'></td><td class="num">'+won(r.pr)+'</td><td class="num">'+won(r.dp)+'</td><td class="num">'+won(r.mo)+'</td><td class="num">'+won(r.g)+'</td><td class="num">'+(r.pr?col(r.rl,sd.ld):'–')+'</td><td class="num">'+(r.pr?col(r.rt,sd.td):'–')+'</td></tr>'}).join("")+
     '</tbody><tfoot><tr><td>합계</td><td class="num">'+(Math.round(T.a*100)/100)+'</td><td class="num">'+won(T.pr)+'</td><td class="num">'+won(T.dp)+'</td><td class="num">'+won(T.mo)+'</td><td class="num">'+won(T.g)+'</td><td class="num">'+(T.pr?pc(T.g/T.pr):'–')+'</td><td class="num">'+(T.pr?pc(T.g/(T.pr*0.9)):'–')+'</td></tr></tfoot></table></div>'+
-    '<p class="note">기준 호실의 감정평가금액 ÷ 그 호실 면적으로 1㎡당 금액을 구하고, 호실마다 면적만큼 주택가격과 근저당(담보)을 나눕니다. 계약 호실은 위 계약 보증금으로 계산합니다.</p></div>'}
+    '<p class="note">기준 호실의 감정평가금액 ÷ 그 호실 면적으로 1㎡당 금액을 구하고, 호실마다 면적만큼 주택가격과 근저당(담보)을 나눕니다. 호실별 주택가격의 합이 건물 감정평가액이 됩니다(위 감정평가액 칸에 자동으로 들어감). 계약 호실은 위 계약 보증금으로 계산합니다.</p></div>'}
 /* 감정평가 유효기간: 평가일 + 6개월(임차인 보증용). 임대인이 보증보험을 발급받았으면 평가일 + 2년, 그 뒤 연장 */
 function hugValid(b){if(!b||b.hugPrelim||!(hugAppr(b)>0))return null;var d=pd(b.hugDate);if(!d)return null;var lord=!!b.hugLordIssued,end=addMonths(d,lord?24:6),days=Math.round((end-TODAY)/864e5);
   return {end:end,days:days,lord:lord,ok:days>=0,soon:days>=0&&days<=WARN_DAYS}}
@@ -1152,7 +1155,7 @@ function hugCard(bid){var b=S.b[bid],c=hugCalc(bid),sd=c.sd,ro=S.canWrite?"":" r
   var uo='<option value="">계약 호실 고르기 (없으면 전체 보증금으로 계산)</option>'+ulist(bid).map(function(u){return '<option value="'+u.id+'"'+(c.cu&&c.cu.id===u.id?" selected":"")+'>'+esc(u.ho)+(u.name?" "+esc(u.name):" (공실)")+'</option>'}).join("");
   var h='<div class="card" id="hug-'+bid+'"><div class="card-h"><h3>허그 보증보험 확인<span class="sub">평택시 · 최근 기준</span></h3><button type="button" class="btn sm t" data-act="print" data-b="'+bid+'" data-k="hug">🖨 인쇄용 양식</button></div>'+
     '<div class="hug-in">'+
-     '<div class="kv"><label>감정평가액</label><div class="kv-v">'+num("hugAppr",hugAppr(b),"감정평가 받은 건물만")+'<label class="hug-pre" title="예비 감정평가면 실제 계산은 공시가격으로 합니다"><input type="checkbox" data-hugpre="'+bid+'"'+(b.hugPrelim?" checked":"")+dis+'> 예비</label></div></div>'+
+     '<div class="kv"><label>감정평가액</label><div class="kv-v">'+(hugMultiPrice(b)>0?'<b class="num">'+won(hugAppr(b))+'</b><small class="muted" style="white-space:nowrap">'+esc((S.u[b.hugRefUnit]||{}).ho||"")+' 기준 · 면적 합으로 자동</small>':num("hugAppr",hugAppr(b),"감정평가 받은 건물만"))+'<label class="hug-pre" title="예비 감정평가면 실제 계산은 공시가격으로 합니다"><input type="checkbox" data-hugpre="'+bid+'"'+(b.hugPrelim?" checked":"")+dis+'> 예비</label></div></div>'+
      '<div class="kv"><label>감정평가일자</label><div class="kv-v"><input class="inp" type="date" data-hug="'+bid+'|hugDate" value="'+esc(b.hugDate||"")+'"'+ro+'></div></div>'+
      '<div class="kv"><label>공시가격</label><div class="kv-v">'+num("hugPub",hugPub(b),"원")+(hugPub(b)?'<small class="muted" style="white-space:nowrap">× 140% = '+won(hugPub(b)*1.4)+'</small>':'')+'</div></div>'+
      (hugAppr(b)>0&&!b.hugPrelim?'<div class="kv"><label>임대인 보증</label><div class="kv-v"><label style="display:inline-flex;gap:6px;align-items:center;cursor:pointer;white-space:nowrap"><input type="checkbox" data-huglord="'+bid+'"'+(b.hugLordIssued?" checked":"")+dis+'> 발급받음</label>'+(b.hugLordIssued?'<input class="inp" type="date" data-hug="'+bid+'|hugLordDate" value="'+esc(b.hugLordDate||"")+'" title="발급일"'+ro+'>':'')+'</div></div>':'')+

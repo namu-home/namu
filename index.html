@@ -955,7 +955,11 @@ document.addEventListener("change",function(e){var t=e.target,a;
   if((a=t.getAttribute("data-ln"))){var q3=a.split("|"),i3=+q3[0],f4=q3[1];var l=Object.assign({},S.loans[i3]);
     l[f4]=f4==="amount"?toNum(t.value):f4==="rate"?toNum(t.value)/100:t.value;S.loans[i3]=l;saveLoans();sched();return}
 });
-document.addEventListener("input",function(e){if(e.target.id==="q"){S.q=e.target.value;clearTimeout(qt);qt=setTimeout(function(){var p=e.target.selectionStart;render();var n=$("#q");if(n){n.focus();try{n.setSelectionRange(p,p)}catch(_){}}},200)}});
+var qComp=false;
+function qSchedule(el){S.q=el.value;clearTimeout(qt);qt=setTimeout(function(){if(qComp)return;var p=el.selectionStart;render();var n=$("#q");if(n){n.focus();try{n.setSelectionRange(p,p)}catch(_){}}},250)}
+document.addEventListener("compositionstart",function(e){if(e.target.id==="q"){qComp=true;clearTimeout(qt)}});
+document.addEventListener("compositionend",function(e){if(e.target.id==="q"){qComp=false;qSchedule(e.target)}});
+document.addEventListener("input",function(e){if(e.target.id==="q"){if(qComp||e.isComposing){S.q=e.target.value;clearTimeout(qt);return}qSchedule(e.target)}});
 var qt;
 document.addEventListener("keydown",function(e){if(e.key==="Enter"&&e.target.classList&&e.target.classList.contains("cell"))e.target.blur()});
 function ensureMk(bid){if(!S.m[bid]){var b=S.b[bid];S.m[bid]={price:b.price||0,loan:b.loan||0,rate:b.rate||0,rows:[],memo:""}}S.m[bid].rows=(S.m[bid].rows||[]).slice()}

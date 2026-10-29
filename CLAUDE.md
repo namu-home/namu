@@ -1,0 +1,45 @@
+# NAMU 주택관리 — Claude 작업 안내
+
+이 저장소는 이슬비(관리자 matht2353@gmail.com)가 쓰는 임대 건물·호실·입금 관리 웹앱입니다.
+사용자는 코드를 다루지 않고 채팅으로만 수정을 요청합니다. 요청을 받으면 아래 순서대로 직접 고치고 올립니다.
+
+- 앱 주소: https://namu-home.github.io/namu/ (GitHub Pages, `main` 브랜치 루트를 그대로 배포)
+- 데이터: Firebase 프로젝트 `namu-hj`, Firestore(서울 asia-northeast3), 무료 Spark 요금제
+- 로그인: Firebase Authentication 이메일/비밀번호, 가입 기능 없음. 관리자 + `access/{email}` 승인 목록에 있는 사람만 접근
+
+## 파일
+
+| 파일 | 내용 |
+| --- | --- |
+| `index.html` | 화면·기능 전부 (CSS + 화면 스크립트). 수정은 대부분 여기서 합니다. 이 파일이 원본입니다. |
+| `firebase-app.js` | 로그인 화면, 승인 확인, Firestore 연결(화면 코드가 쓰는 `window.claude.use("db" \| "user" \| "downloads")` 모양으로 감쌈), 관리 메뉴(사용자 승인·백업·가져오기), 서비스 워커 등록 |
+| `firestore.rules` | 접근 규칙 사본. 바꾸면 사용자가 Firebase 콘솔 → Firestore → 규칙에 붙여넣고 게시해야 반영됩니다(저장소에 올려도 자동 반영 안 됨). |
+| `manifest.webmanifest`, `sw.js`, `icon-*.png` | PC·휴대폰 설치(PWA) |
+
+## 데이터 구조 (Firestore 컬렉션)
+
+- `buildings/{bid}`: 건물 (name, addr, order, price·loan(만원), rate, land, bldg, gfa, parking, comp, memo, footer)
+- `units/{uid}`: 호실 (bid, ho, order, name, phone, deposit, rent, mgmt, payDay, moveIn, expiry, term, carry, limit, memo, type, autoBill, terminate·termExpiry·termBase·termMode·noticeDate·termRenewed, implied·prevExpiry·origExpiry, newContract·newAt·moveInPlan)
+- `ledgers/{uid}`: `{rows:[{due, rent, mgmt, rDate, rType, rAmt, mDate, mType, mAmt, note, sub?}]}` — 입금은 rDate/rAmt 한 칸에 적음(mDate/mAmt는 옛 자료 호환용), `sub:true` = 위 청구에 딸린 추가 입금 줄
+- `market/{bid}`: 매물장 시세 (price, loan, rate, rows:[{floor, ho, dep, rent, type, note}], footer) — 단위 만원
+- `meta/loans`: `{rows:[{bid, label, amount, rate}]}` 이자계산 · `meta/autobill`: 자동 청구 잠금
+- `access/{email}`: `{role: "edit" | "view", at}` 승인 목록 (관리자만 쓰기)
+
+주요 계산: 미납 = 월세+관리비−입금(청구일이 지난 줄만, sub 줄은 입금만 뺌). 만기는 계약기간(입주일~만기일)만큼 묵시적갱신. 자동 청구는 차임일 당일, 마지막 청구 후 92일 넘으면 멈춤.
+
+## 수정하는 순서
+
+1. `git pull` 후 `index.html`(필요하면 `firebase-app.js`)을 고칩니다. 바꾼 곳 외에는 건드리지 않습니다.
+2. 스크립트 문법을 확인합니다: `index.html`의 각 `<script>` 블록을 꺼내 `node --check`, `firebase-app.js`는 `node --check --input-type=module`.
+3. 화면을 봅니다: 로컬에서 `python3 -m http.server`로 띄우고 Playwright로 열되, `https://www.gstatic.com/firebasejs/10.12.2/*` 요청을 간단한 가짜 모듈(로그인·Firestore 메모리 저장)로 바꿔 끼워 로그인 → 화면 → 입력 저장까지 확인합니다. PC 폭과 휴대폰 폭(390px), 밝은/어두운 화면을 봅니다.
+4. 커밋 메시지는 한국어로 무엇을 바꿨는지 씁니다. `main`에 바로 push 하면 1~2분 뒤 앱에 반영됩니다.
+5. `sw.js`가 화면 파일을 저장해 두므로, 큰 변경 뒤에는 `CACHE` 이름 숫자를 올려(`namu-shell-v2` …) 새 버전을 바로 받게 합니다.
+
+## 꼭 지킬 것
+
+- 세입자 데이터(이름·연락처·입금, 백업 json, 단독 html, 엑셀)를 저장소에 절대 올리지 않습니다. 저장소는 공개입니다.
+- 저장 형식이 바뀌는 수정(필드 이름 변경, 구조 변경)은 먼저 사용자에게 알리고, 기존 데이터를 새 형식으로 읽거나 옮기는 코드를 함께 넣습니다. 데이터를 지우는 변경은 사용자 확인 없이 하지 않습니다.
+- `firebase-app.js`의 `OWNER`와 `firestore.rules`의 관리자 이메일은 항상 같아야 합니다. 규칙을 바꾸면 사용자에게 붙여넣을 전체 규칙을 채팅으로 줍니다.
+- 결제(Blaze) 요금제가 필요한 기능(Cloud Functions, Storage 등)은 쓰지 않습니다.
+- 화면 글은 한국어, 숫자는 가운데 정렬, 색은 CSS 토큰(`--accent`, `--renew-bg`, `--term-bg`, `--new-bg` 등)만 씁니다. 묵시적갱신=초록 배경, 계약 해지=빨강 배경, 새 계약=파랑 배경입니다.
+- 사용자에게 설명할 때는 코드 용어 대신 화면에서 보이는 말로 짧게 말합니다.

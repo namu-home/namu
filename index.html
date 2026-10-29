@@ -608,7 +608,7 @@ function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물�
   var us=ulist(id),t=totals(us),li=loanMonthly(id),ro=S.canWrite?"":" readonly";
   var h='<div class="bar" style="margin-top:0"><div class="chips">'+blist().map(function(x){var n=ulist(x.id).length,un=totals(ulist(x.id)).un;return '<button type="button" class="chip'+(x.id===id?" on":"")+'" data-go="b-'+x.id+'"'+(x.id===id?' aria-current="page"':'')+'>'+esc(x.name)+'<em>'+(n?n+'세대':'매물장')+'</em>'+(un>0?'<span class="dot" title="미납 있음"></span>':'')+'</button>'}).join("")+(S.canWrite?'<button type="button" class="chip chip-add" data-act="add-bld" title="건물 추가" aria-label="건물 추가">+</button>':'')+'</div></div>'+
    '<section class="hero"><div class="hero-body"><p class="eyebrow">BUILDING</p><h1>'+esc(b.name)+'<small>'+esc(b.addr||"")+'</small></h1><p class="lead">'+esc(b.comp||"")+'</p>'+
-   '<div class="hero-acts"><a class="btn" href="#m-'+id+'">매물장 · 수익률</a>'+(S.canWrite?'<button type="button" class="btn" data-act="add-unit" data-b="'+id+'">호실 추가</button>':'')+'</div></div>'+
+   '<div class="hero-acts"><a class="btn" href="#m-'+id+'">매물장 · 수익률</a>'+(S.canWrite?'<button type="button" class="btn" data-act="add-unit" data-b="'+id+'">호실 추가</button><button type="button" class="btn ghost danger" data-act="del-bld" data-b="'+id+'" data-confirm="정말 건물 삭제?">건물 삭제</button>':'')+'</div></div>'+
    '<div class="panel"><p class="panel-t">이 건물</p><div class="kpis">'+
    '<div class="kpi"><span class="l">입주 세대</span><span class="n num">'+t.occ+'<small>/ '+t.n+'</small></span><span class="s">공실 '+(t.n-t.occ)+'</span></div>'+
    '<div class="kpi"><span class="l">보증금</span><span class="n num">'+man(t.dep/1e4)+'<small>만원</small></span><span class="s num">'+won(t.dep)+'</span></div>'+
@@ -1020,6 +1020,11 @@ document.addEventListener("click",function(e){
   else if(act==="add-unit"){var us=ulist(bid);var id2=nid(bid+"-u");var o=us.length?(us[us.length-1].order||0)+1:1;
       S.u[id2]={id:id2,bid:bid,ho:"새 호실",order:o,name:"",phone:"",deposit:0,rent:0,mgmt:0,payDay:0,moveIn:"",expiry:"",carry:0,memo:"",type:""};
       var d2=Object.assign({},S.u[id2]);delete d2.id;save("units/"+id2,function(){return S.db.doc("units/"+id2).set(d2)});go("u-"+id2)}
+  else if(act==="del-bld"){var bd=bid,nu=ulist(bd).length;
+    if(nu){toast("이 건물에 호실이 "+nu+"개 있습니다. 호실을 먼저 모두 삭제한 뒤 건물을 삭제할 수 있습니다.");return}
+    var bn=(S.b[bd]||{}).name||"건물";delete S.b[bd];if(S.m)delete S.m[bd];delete S.ph[bd];
+    save("buildings/"+bd,function(){return S.db.doc("buildings/"+bd).delete().then(function(){return S.db.doc("market/"+bd).delete()}).then(function(){return S.db.doc("photos/"+bd).delete()})});
+    var rest=blist();go(rest.length?"b-"+rest[0].id:"home");toast("'"+bn+"' 건물을 삭제했습니다.")}
   else if(act==="del-unit"){var u2=S.u[uid];delete S.u[uid];delete S.l[uid];save("units/"+uid,function(){return S.db.doc("units/"+uid).delete().then(function(){return S.db.doc("ledgers/"+uid).delete()})});go("b-"+u2.bid);toast("호실을 삭제했습니다.")}
   else if(act==="mk-add"){ensureMk(bid);S.m[bid].rows.push({floor:"",ho:"",dep:0,rent:0,type:"",note:""});saveMarket(bid);render()}
   else if(act==="mk-del"){ensureMk(bid);S.m[bid].rows.splice(i,1);saveMarket(bid);render()}

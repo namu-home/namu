@@ -1,11 +1,11 @@
 {
-  "name": "NAMU 주택관리",
+  "name": "NAMU",
   "short_name": "NAMU",
   "description": "건물·호실·입금 관리",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#f7f3f6",
   "theme_color": "#6a2150",
   "lang": "ko",
   "icons": [

@@ -11,6 +11,8 @@
 <meta name="apple-mobile-web-app-title" content="NAMU">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body>
+<div id="boot" class="boot" role="status" aria-label="불러오는 중"><img src="./logo-lg.png?v=3" alt="NAMU" width="260" height="130"><span>불러오는 중입니다…</span></div>
+<script>setTimeout(function(){var b=document.getElementById("boot");if(b)b.remove()},15000)</script>
 <title>NAMU 주택관리</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -366,6 +368,7 @@ label.chk{flex-direction:row;gap:12px;align-items:flex-start}
 input[type=date]::-webkit-datetime-edit{display:inline-flex;justify-content:center;width:100%}
 
 /* 로그인 · 관리 */
+.boot{position:fixed;inset:0;z-index:55;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:var(--muted);font-size:14px;font-weight:600}.boot img{width:min(260px,70vw);height:auto}
 .lg-bg{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-left,0px))}
 .lg-card{width:min(400px,100%);background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:28px 24px;box-shadow:0 20px 50px -24px var(--shadow);display:flex;flex-direction:column;gap:10px}
 .lg-brand{display:flex;flex-direction:column;align-items:center;gap:8px;justify-content:center;margin-bottom:10px}.lg-brand img{display:block;width:min(260px,80%);height:auto}
@@ -443,8 +446,8 @@ button.stile{cursor:pointer}button.stile:hover{background:var(--hover)}
 (function(){var p=new Promise(function(r){window.__namuResolve=r});window.claude={use:function(n){return p.then(function(x){return n==="db"?x.db:n==="user"?x.user:n==="downloads"?x.downloads:null})}};})();
 </script>
 <script>
-(function(){var shown=false;function show(m){if(shown)return;var v=document.getElementById("view");if(!v||!/splash/.test(v.innerHTML))return;shown=true;v.innerHTML='<div class="splash"><b>화면을 여는 중 문제가 생겼습니다</b>'+String(m).replace(/[<>&]/g,"")+'<div style="margin-top:12px"><button type="button" class="btn p" onclick="location.reload()">다시 불러오기</button></div></div>'}
-window.addEventListener("error",function(e){show("오류: "+(e&&e.message||"알 수 없음"))});window.__namuShowErr=show;})();
+(function(){var shown=false;function show(m){var bb=document.getElementById("boot");if(bb)bb.remove();if(shown)return;var v=document.getElementById("view");if(!v||!/splash/.test(v.innerHTML))return;shown=true;v.innerHTML='<div class="splash"><b>화면을 여는 중 문제가 생겼습니다</b>'+String(m).replace(/[<>&]/g,"")+'<div style="margin-top:12px"><button type="button" class="btn p" onclick="location.reload()">다시 불러오기</button></div></div>'}
+window.addEventListener("error",function(e){show("오류: "+(e&&e.message||"알 수 없음"))});window.__namuShowErr=show;window.addEventListener("error",function(){var b=document.getElementById("boot");if(b)b.remove()});})();
 </script>
 <script>
 (function(){
@@ -1250,7 +1253,7 @@ function render(nav){
   else if(R.v==="m")h+=viewMarket(R.id);
   else if(R.v==="loans")h+=viewLoans();
   else if(R.v==="cost")h+=viewCosts();
-  $("#view").innerHTML=h;setHubH();
+  $("#view").innerHTML=h;setHubH();var bt=document.getElementById("boot");if(bt)bt.remove();
   document.querySelectorAll("[data-sk]").forEach(function(e){var k=e.getAttribute("data-sk");if(sc[k]!=null&&key===lastKey)e.scrollLeft=sc[k]});
   if((nav||!lastKey)&&key!==lastKey){if(R.ledger){var l=$("#ledger");if(l)setTimeout(function(){l.scrollIntoView({block:"start"});window.scrollBy(0,-120)},0)}else window.scrollTo(0,0)}
   else window.scrollTo(0,y);
@@ -1432,7 +1435,7 @@ Promise.all([window.claude&&window.claude.use?window.claude.use("db"):Promise.re
   if(!db){fail("claude.ai에 로그인한 상태에서 이 페이지를 열면 건물·호실·입금내역이 표시되고 바로 수정할 수 있습니다.");return}
   S.db=db;
   setTimeout(function(){if(S.got.b&&S.got.u)return;var v=$("#view");if(!v||!/splash/.test(v.innerHTML))return;
-    v.innerHTML='<div class="splash"><b>데이터가 아직 도착하지 않았습니다</b>저장소에는 연결됐지만 건물 '+(S.got.b?"✓":"…")+' · 호실 '+(S.got.u?"✓":"…")+' · 입금내역 '+(S.got.l?"✓":"…")+' 자료를 기다리는 중입니다. 인터넷 연결을 확인하고 다시 불러와 주세요.<div style="margin-top:12px"><button type="button" class="btn p" onclick="location.reload()">다시 불러오기</button></div></div>'},15000);
+    var bt2=document.getElementById("boot");if(bt2)bt2.remove();v.innerHTML='<div class="splash"><b>데이터가 아직 도착하지 않았습니다</b>저장소에는 연결됐지만 건물 '+(S.got.b?"✓":"…")+' · 호실 '+(S.got.u?"✓":"…")+' · 입금내역 '+(S.got.l?"✓":"…")+' 자료를 기다리는 중입니다. 인터넷 연결을 확인하고 다시 불러와 주세요.<div style="margin-top:12px"><button type="button" class="btn p" onclick="location.reload()">다시 불러오기</button></div></div>'},15000);
   if(user&&user.can){Promise.resolve(user.can("data.write")).then(function(v){if(v===false){S.canWrite=false;sched()}}).catch(function(){})}
   listen("buildings","b",function(s){var o={};s.docs.forEach(function(d){o[d.id]=Object.assign({id:d.id},d.data())});S.b=o});
   listen("units","u",function(s){var o={};s.docs.forEach(function(d){o[d.id]=Object.assign({id:d.id},d.data())});S.u=o});

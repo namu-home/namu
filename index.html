@@ -644,7 +644,7 @@ function viewSum(){
   var tt=totals(all),exn=expList().filter(function(x){return x.todo}).length,spend=loanMonthly()+expMonthly()+jongYear()/12,net=tt.ia-spend;
   var man=function(x){return won(Math.round(x))};
   var tile=function(l,n,u,attr,cls){return '<'+(attr?'button type="button" '+attr:'div')+' class="stile'+(cls?" "+cls:"")+'"><span class="l">'+l+'</span><span class="n num">'+n+(u?'<small>'+u+'</small>':'')+'</span></'+(attr?'button':'div')+'>'};
-  h+='<div class="stiles">'+tile("입주 세대",tt.occ+'<small> / '+tt.n+'</small>',"")+tile("보증금 합계",man(tt.dep/1e4),"만원")+tile("월세 + 관리비",man(tt.ia/1e4),"만원")+
+  h+='<div class="stiles">'+tile("입주 세대",tt.occ+'<small> / '+tt.n+'</small>',"")+tile("보증금 합계",eokMan(tt.dep).replace(/억 ?/,'<small>억</small> ').replace(/만$/,''),"만원")+tile("월세 + 관리비",man(tt.ia/1e4),"만원")+
     tile("미납 합계",man(tt.un/1e4),"만원",'data-act="filter-unpaid"',tt.un>0?"bad":"")+tile("만기 3개월 이내",exn,"세대",'data-go="expiry"',exn?"warn":"")+
     tile("한 달 지출",man(spend/1e4),"만원",'data-go="costs"')+tile("월 순수익",man(net/1e4),"만원",'data-go="costs"',net<0?"bad":"good")+'</div>';
   /* 2. 이번 달 수금 */

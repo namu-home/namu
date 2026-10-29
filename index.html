@@ -613,10 +613,10 @@ function viewSum(){
   var all=ulist(),occ=all.filter(function(u){return u.name&&monthly(u)>0}),Y=TODAY.getFullYear(),M=TODAY.getMonth();
   var h='<div class="sum-head"><div><p class="sum-k">HOME</p><h2>'+TODAY.getFullYear()+'년 '+(M+1)+'월 '+TODAY.getDate()+'일 '+WD[TODAY.getDay()]+'요일</h2></div><a class="btn" href="#home">전체 현황 보기 ›</a></div>';
   /* 1. 핵심 지표 (간단하게) */
-  var tt=totals(all),exn=expList().filter(function(x){return x.todo}).length,spend=loanMonthly()+expMonthly()+jongYear()/12,net=tt.rent+tt.mgmt-spend;
+  var tt=totals(all),exn=expList().filter(function(x){return x.todo}).length,spend=loanMonthly()+expMonthly()+jongYear()/12,net=tt.ia-spend;
   var man=function(x){return won(Math.round(x))};
   var tile=function(l,n,u,attr,cls){return '<'+(attr?'button type="button" '+attr:'div')+' class="stile'+(cls?" "+cls:"")+'"><span class="l">'+l+'</span><span class="n num">'+n+(u?'<small>'+u+'</small>':'')+'</span></'+(attr?'button':'div')+'>'};
-  h+='<div class="stiles">'+tile("입주 세대",tt.occ+'<small> / '+tt.n+'</small>',"")+tile("보증금 합계",man(tt.dep/1e4),"만원")+tile("월세 + 관리비",man((tt.rent+tt.mgmt)/1e4),"만원")+
+  h+='<div class="stiles">'+tile("입주 세대",tt.occ+'<small> / '+tt.n+'</small>',"")+tile("보증금 합계",man(tt.dep/1e4),"만원")+tile("월세 + 관리비",man(tt.ia/1e4),"만원")+
     tile("미납 합계",man(tt.un/1e4),"만원",'data-act="filter-unpaid"',tt.un>0?"bad":"")+tile("만기 3개월 이내",exn,"세대",'data-go="expiry"',exn?"warn":"")+
     tile("한 달 지출",man(spend/1e4),"만원",'data-go="costs"')+tile("월 순수익",man(net/1e4),"만원",'data-go="costs"',net<0?"bad":"good")+'</div>';
   /* 2. 이번 달 수금 */
@@ -638,14 +638,14 @@ function viewSum(){
     (ev.length?ev.map(function(o){var n=Math.round((o.d-TODAY)/864e5);return '<a class="sl ev" href="#u-'+o.u.id+'"><span class="ev-d num"><b>'+mdw(o.d)+'</b><em>'+(n?'D-'+n:'오늘')+'</em></span><span class="sl-l"><span class="tag '+o.k+'">'+o.t+'</span> <b>'+esc(bname(o.u.bid))+' '+esc(o.u.ho)+'</b> '+esc(o.u.name)+'</span></a>'}).join(""):'<p class="sum-none">3개월 안에 만기·퇴실·입주 일정이 없습니다.</p>')+'</div>';
   h+='<div class="sum-grid">'+t2+t3+'</div>';
   /* 4. 건물 카드 */
-  h+='<div class="card-h" style="margin-top:6px"><h3>건물</h3></div><div class="bc-grid">'+blist().map(function(b){var us=ulist(b.id),t=totals(us),net=t.rent+t.mgmt-loanMonthly(b.id)-expMonthly(b.id),ph=S.ph[b.id];if(ph===undefined)loadPhoto(b.id);
+  h+='<div class="card-h" style="margin-top:6px"><h3>건물</h3></div><div class="bc-grid">'+blist().map(function(b){var us=ulist(b.id),t=totals(us),net=t.ia-loanMonthly(b.id)-expMonthly(b.id),ph=S.ph[b.id];if(ph===undefined)loadPhoto(b.id);
     return '<a class="bc" href="#b-'+b.id+'"><span class="bc-ph">'+(ph&&ph.data?'<img src="'+ph.data+'" alt="">':namuTree(44))+'</span><span class="bc-b"><b>'+esc(b.name)+'</b>'+
       '<span class="bc-r"><span>입주 <b class="num">'+t.occ+'/'+t.n+'</b></span><span>미납 <b class="num'+(t.un>0?" pos":"")+'">'+won(t.un)+'</b></span></span>'+
       '<span class="bc-r"><span>월 순수익 <b class="num'+(net<0?" pos":"")+'">'+won(net)+'</b></span></span></span></a>'}).join("")+'</div>';
   return h}
 
 /* ---------- 전체 현황 (Sheet1) ---------- */
-function totals(us){var t={dep:0,rent:0,mgmt:0,un:0,pre:0,occ:0,n:us.length};us.forEach(function(u){t.dep+=+u.deposit||0;t.rent+=+u.rent||0;t.mgmt+=+u.mgmt||0;var x=unpaid(u);if(x>0)t.un+=x;else t.pre+=x;if(u.name)t.occ++});return t}
+function totals(us){var t={dep:0,rent:0,mgmt:0,un:0,pre:0,occ:0,n:us.length,ia:0,na:0,naAmt:0};us.forEach(function(u){t.dep+=+u.deposit||0;t.rent+=+u.rent||0;t.mgmt+=+u.mgmt||0;if(noAuto(u)){t.na++;t.naAmt+=monthly(u)}else if(u.name)t.ia+=monthly(u);var x=unpaid(u);if(x>0)t.un+=x;else t.pre+=x;if(u.name)t.occ++});return t}
 function unitRow(u){var ms=monthState(u),x=unpaid(u);
   return '<tr class="ur"><td class="l stick"><a class="holink" href="#u-'+u.id+'" title="'+esc(u.ho)+' 호실 화면으로">'+esc(u.ho)+'</a></td><td class="l">'+(abOff(u)?'<span class="nmwrap">'+nmHtml(u)+abOff(u)+'</span>':nmHtml(u))+(planTag(u)?'<br>'+planTag(u):'')+'</td><td class="l num">'+esc(u.phone)+'</td>'+
   '<td class="num">'+wonZ(u.deposit)+'</td><td class="num'+(noAuto(u)?' noauto':'')+'" title="월세 '+won(u.rent)+(+u.mgmt?' + 관리비 '+won(u.mgmt):'')+(noAuto(u)?' · 자동 청구 안 함 – 직접 청구해야 합니다':'')+'">'+wonZ((+u.rent||0)+(+u.mgmt||0))+'</td><td class="c num">'+(u.payDay?u.payDay+"일":"")+'</td>'+
@@ -678,17 +678,17 @@ function viewHome(){
     var us=ulist(b.id).filter(matchQ).filter(function(u){return S.filter==="unpaid"?unpaid(u)>0:S.filter==="exp"?!!exIds[u.id]:S.filter==="new"?!!u.newContract:true});return {b:b,us:us}}).filter(function(g){return g.us.length});
   var fu=[];groups.forEach(function(g){fu=fu.concat(g.us)});var st=totals(fu),fl={all:"",unpaid:"미납만",exp:"만기",new:"새 계약"}[S.filter];if(fl===undefined)fl=bname(S.filter);if(S.q)fl=(fl?fl+" · ":"")+"검색 ‘"+S.q+"’";
   var hs=('<div class="hsum"><h1>전체 현황<small>'+blist().length+'개 건물 · '+t.n+'세대</small></h1><div class="hsum-l num">'+(fl?'<span class="hsum-f">'+esc(fl)+' '+fu.length+'세대</span>':'')+
-    '<span>입주 <b>'+st.occ+'/'+st.n+'</b></span><span>보증금 <b>'+eokMan(st.dep)+'</b></span><span>월세+관리비 <b>'+eokMan(st.rent+st.mgmt)+'</b>'+(function(){var na=fu.filter(noAuto);return na.length?' <small class="hsum-na">(자동 청구 안 함 '+na.length+'곳 '+eokMan(na.reduce(function(a,u){return a+monthly(u)},0))+' 포함)</small>':''})()+'</span>'+
+    '<span>입주 <b>'+st.occ+'/'+st.n+'</b></span><span>보증금 <b>'+eokMan(st.dep)+'</b></span><span>월세+관리비 <b>'+eokMan(st.ia)+'</b>'+(st.na?' <small class="hsum-na">(자동 청구 안 함 '+st.na+'곳 포함 시 '+eokMan(st.ia+st.naAmt)+')</small>':'')+'</span>'+
     '<button type="button" class="hsum-un'+(st.un>0?" pos":"")+'" data-act="filter-unpaid" title="미납만 보기">미납 <b>'+eokMan(st.un)+'</b></button></div></div>');h=h.replace("%%HSUM%%",function(){return hs});
   if(!groups.length){h+='<div class="card empty">조건에 맞는 호실이 없습니다.</div>';return h}
   var tb='<div class="card only-wide"><div class="scroller" data-sk="home"><table class="tbl"><thead><tr><th class="l stick">호수</th><th class="l">임차인</th><th class="l">연락처</th><th>보증금</th><th title="월세와 관리비를 더한 금액">월세+관리비</th><th class="c">차임일</th><th class="c">입주일</th><th class="c">만기일</th><th class="c">최근 청구</th><th>미납 금액</th><th title="미납이 이 금액 이하이면 회색으로 표시">기준금액</th><th class="l">비고</th><th class="l">입금 입력 <span style="font-weight:400">(최근 청구에 기록)</span></th></tr></thead><tbody>';
-  var cards='<div class="only-narrow">';var ft={dep:0,rent:0,mgmt:0,un:0};
-  groups.forEach(function(g){var gt=totals(g.us);ft.dep+=gt.dep;ft.rent+=gt.rent;ft.mgmt+=gt.mgmt;ft.un+=gt.un+gt.pre;
+  var cards='<div class="only-narrow">';var ft={dep:0,rent:0,mgmt:0,un:0,ia:0,na:0,naAmt:0};
+  groups.forEach(function(g){var gt=totals(g.us);ft.dep+=gt.dep;ft.rent+=gt.rent;ft.mgmt+=gt.mgmt;ft.ia+=gt.ia;ft.na+=gt.na;ft.naAmt+=gt.naAmt;ft.un+=gt.un+gt.pre;
     var shut=!S.q&&!SPF[S.filter]&&!!S.fold[g.b.id];
-    tb+='<tr class="grp"><td class="l stick" colspan="3"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'" title="접기 / 펼치기"><span class="fold'+(shut?" shut":"")+'">▼</span><span class="gname">'+esc(g.b.name)+'</span></button> <span class="muted" style="font-weight:400">'+gt.occ+'/'+gt.n+'세대</span><a class="glink" href="#b-'+g.b.id+'">건물 보기 ›</a></td><td class="num">'+won(gt.dep)+'</td><td class="num">'+won(gt.rent+gt.mgmt)+'</td><td colspan="4"></td><td class="num '+((gt.un+gt.pre)>0?"pos":"")+'">'+won(gt.un+gt.pre)+'</td><td colspan="3"></td></tr>';
+    tb+='<tr class="grp"><td class="l stick" colspan="3"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'" title="접기 / 펼치기"><span class="fold'+(shut?" shut":"")+'">▼</span><span class="gname">'+esc(g.b.name)+'</span></button> <span class="muted" style="font-weight:400">'+gt.occ+'/'+gt.n+'세대</span><a class="glink" href="#b-'+g.b.id+'">건물 보기 ›</a></td><td class="num">'+won(gt.dep)+'</td><td class="num">'+won(gt.ia)+'</td><td colspan="4"></td><td class="num '+((gt.un+gt.pre)>0?"pos":"")+'">'+won(gt.un+gt.pre)+'</td><td colspan="3"></td></tr>';
     if(!shut)tb+=g.us.map(unitRow).join("");
-    cards+='<div class="ugrp"><div class="ugrp-h"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'"><span class="fold'+(shut?" shut":"")+'">▼</span><b>'+esc(g.b.name)+'</b></button><span class="num">월 '+won(gt.rent+gt.mgmt)+' · 미납 '+won(gt.un)+'</span></div>'+(shut?'':g.us.map(unitCard).join(""))+'</div>'});
-  tb+='</tbody><tfoot><tr><td class="l stick" colspan="3">합계</td><td class="num">'+won(ft.dep)+'</td><td class="num">'+won(ft.rent+ft.mgmt)+'</td><td colspan="4" class="l muted" style="font-weight:400">월세 '+won(ft.rent)+' · 관리비 '+won(ft.mgmt)+'</td><td class="num">'+won(ft.un)+'</td><td colspan="3"></td></tr></tfoot></table></div></div>';
+    cards+='<div class="ugrp"><div class="ugrp-h"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'"><span class="fold'+(shut?" shut":"")+'">▼</span><b>'+esc(g.b.name)+'</b></button><span class="num">월 '+won(gt.ia)+' · 미납 '+won(gt.un)+'</span></div>'+(shut?'':g.us.map(unitCard).join(""))+'</div>'});
+  tb+='</tbody><tfoot><tr><td class="l stick" colspan="3">합계</td><td class="num">'+won(ft.dep)+'</td><td class="num">'+won(ft.ia)+'</td><td colspan="4" class="l muted" style="font-weight:400">'+(ft.na?'자동 청구 안 함 '+ft.na+'곳 포함 시 '+won(ft.ia+ft.naAmt):'월세 '+won(ft.rent)+' · 관리비 '+won(ft.mgmt))+'</td><td class="num">'+won(ft.un)+'</td><td colspan="3"></td></tr></tfoot></table></div></div>';
   return h+tb+cards+'</div>'}
 
 /* ---------- 건물별 ---------- */
@@ -700,9 +700,9 @@ function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물�
    '<div class="panel"><p class="panel-t">이 건물</p><div class="kpis">'+
    '<div class="kpi"><span class="l">입주 세대</span><span class="n num">'+t.occ+'<small>/ '+t.n+'</small></span><span class="s">공실 '+(t.n-t.occ)+'</span></div>'+
    '<div class="kpi"><span class="l">보증금</span><span class="n num">'+man(t.dep/1e4)+'<small>만원</small></span><span class="s num">'+won(t.dep)+'</span></div>'+
-   '<div class="kpi"><span class="l">월세 + 관리비</span><span class="n num">'+won(t.rent+t.mgmt)+'</span><span class="s num">이자 차감 '+won(t.rent+t.mgmt-li)+'</span></div>'+
+   '<div class="kpi"><span class="l">월세 + 관리비</span><span class="n num">'+won(t.ia)+'</span><span class="s num">'+(t.na?'자동 청구 안 함 '+t.na+'곳 포함 시 '+won(t.ia+t.naAmt):'자동 청구 기준')+'</span></div>'+
    '<div class="kpi'+(t.un>0?" alert":"")+'"><span class="l">미납</span><span class="n num">'+won(t.un)+'</span><span class="s">'+(t.pre?'선납 '+won(-t.pre):'')+'</span></div>'+
-   (function(){var ex=expMonthly(id),sp=li+ex,net=t.rent+t.mgmt-sp;return '<a class="kpi" href="#costs"><span class="l">한 달 지출</span><span class="n num">'+won(sp)+'</span><span class="s num">이자 '+won(li)+' · 공과금 등 '+won(ex)+'</span></a>'+
+   (function(){var ex=expMonthly(id),sp=li+ex,net=t.ia-sp;return '<a class="kpi" href="#costs"><span class="l">한 달 지출</span><span class="n num">'+won(sp)+'</span><span class="s num">이자 '+won(li)+' · 공과금 등 '+won(ex)+'</span></a>'+
      '<a class="kpi" href="#costs"><span class="l">월 순수익</span><span class="n num">'+won(net)+'</span><span class="s num">1년 '+won(net*12)+'</span></a>'})()+
    '</div></div></section><div style="height:16px"></div>';
   var ph=S.ph[id];if(ph===undefined)loadPhoto(id);
@@ -1055,13 +1055,13 @@ function viewLoans(){var ro=S.canWrite?"":" readonly";var all=ulist(),t=totals(a
 /* ---------- 지출 (이자 · 공과금 · 종부세 정리) ---------- */
 function viewCosts(){var all=ulist(),t=totals(all);
   var h='<section class="hero"><div class="hero-body"><p class="eyebrow">COST · 지출</p><h1>지출</h1><p class="lead">건물마다 나가는 이자와 공과금·관리 비용, 종부세를 한곳에 모아 한 달 지출과 순수익을 계산합니다. 이자는 <a href="#loans"><b>이자계산</b></a>에 적은 대출에서 자동으로 가져옵니다.</p></div></section><div style="height:16px"></div>';
-  var S2={inc:0,int:0,ex:0,pay:0},rows2=blist().map(function(b){var tt=totals(ulist(b.id)),inc=tt.rent+tt.mgmt,it=loanMonthly(b.id),py=loanPay(b.id),ex=expMonthly(b.id);S2.inc+=inc;S2.int+=it;S2.pay+=py;S2.ex+=ex;
+  var S2={inc:0,int:0,ex:0,pay:0},rows2=blist().map(function(b){var tt=totals(ulist(b.id)),inc=tt.ia,it=loanMonthly(b.id),py=loanPay(b.id),ex=expMonthly(b.id);S2.inc+=inc;S2.int+=it;S2.pay+=py;S2.ex+=ex;
     return '<tr><td class="l"><a href="#cost-'+b.id+'" data-jump="cost-'+b.id+'">'+esc(b.name)+'</a></td><td class="num">'+won(inc)+'</td><td class="num">'+won(it)+'</td><td class="num">'+won(ex)+'</td><td class="num"><b>'+won(it+ex)+'</b></td><td class="num"><b class="'+(inc-it-ex<0?"pos":"")+'">'+won(inc-it-ex)+'</b></td><td class="num">'+won(py)+'</td><td class="num">'+won(inc-py-ex)+'</td></tr>'}).join("");
   var ei=loanMonthly("etc"),ep=loanPay("etc"),jm=jongYear()/12;S2.int+=ei;S2.pay+=ep;S2.ex+=jm;
   if(ei||ep)rows2+='<tr><td class="l">기타 대출</td><td class="num">0</td><td class="num">'+won(ei)+'</td><td class="num">0</td><td class="num"><b>'+won(ei)+'</b></td><td class="num">'+won(-ei)+'</td><td class="num">'+won(ep)+'</td><td class="num">'+won(-ep)+'</td></tr>';
   rows2+='<tr><td class="l"><a href="#jong" data-jump="jong">종부세</a> <small class="muted">(1년 ÷ 12)</small></td><td class="num">0</td><td class="num">0</td><td class="num">'+won(jm)+'</td><td class="num"><b>'+won(jm)+'</b></td><td class="num">'+won(-jm)+'</td><td class="num">0</td><td class="num">'+won(-jm)+'</td></tr>';
   var sp=S2.int+S2.ex,net=S2.inc-sp,cash=S2.inc-S2.pay-S2.ex;
-  h+='<div class="card"><div class="card-h"><h3>한 달 지출 정리</h3></div><div class="scroller"><table class="tbl"><thead><tr><th class="l">건물</th><th>월세 + 관리비</th><th>이자</th><th>공과금 · 세금</th><th>지출 합계<br><small>(이자 + 공과금)</small></th><th>순수익<br><small>(수입 − 지출)</small></th><th>월 상환액<br><small>(원금 포함)</small></th><th>통장에 남는 돈<br><small>(수입 − 상환액 − 공과금)</small></th></tr></thead><tbody>'+rows2+
+  h+='<div class="card"><div class="card-h"><h3>한 달 지출 정리</h3></div><div class="scroller"><table class="tbl"><thead><tr><th class="l">건물</th><th>월세 + 관리비<br><small>(자동 청구 기준)</small></th><th>이자</th><th>공과금 · 세금</th><th>지출 합계<br><small>(이자 + 공과금)</small></th><th>순수익<br><small>(수입 − 지출)</small></th><th>월 상환액<br><small>(원금 포함)</small></th><th>통장에 남는 돈<br><small>(수입 − 상환액 − 공과금)</small></th></tr></thead><tbody>'+rows2+
     '</tbody><tfoot><tr><td class="l">합계</td><td class="num">'+won(S2.inc)+'</td><td class="num">'+won(S2.int)+'</td><td class="num">'+won(S2.ex)+'</td><td class="num">'+won(sp)+'</td><td class="num">'+won(net)+'</td><td class="num">'+won(S2.pay)+'</td><td class="num">'+won(cash)+'</td></tr></tfoot></table></div>'+
    '<div class="yield"><div class="sbox"><span class="l">월세 + 관리비</span><span class="n num">'+won(S2.inc)+'</span></div><div class="sbox"><span class="l">한 달 지출 합계</span><span class="n num">'+won(sp)+'</span></div><div class="sbox'+(net<0?" bad":" good")+'"><span class="l">순수익 (한 달)</span><span class="n num">'+won(net)+'</span></div><div class="sbox"><span class="l">순수익 (1년)</span><span class="n num">'+won(net*12)+'</span></div></div></div>';
   h+='<datalist id="ex-names">'+EX_NAMES.map(function(n){return '<option value="'+n+'">'}).join("")+'</datalist>';

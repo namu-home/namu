@@ -65,7 +65,7 @@ const downloads = { save: (o) => { const b = o.data instanceof Blob ? o.data : n
 let role = null, me = null, started = false, pending = null;
 function loginView(msg, kind) {
   const L = $("#login"); L.hidden = false;
-  L.innerHTML = `<div class="lg-card"><div class="lg-brand"><img src="./logo-lg.png" alt="NAMU" width="260" height="122"><em>주택관리</em></div>
+  L.innerHTML = `<div class="lg-card"><div class="lg-brand"><img src="./logo-lg.png?v=3" alt="NAMU" width="260" height="130"><em>주택관리</em></div>
   <form id="lg-form" autocomplete="on"><label for="lg-email">이메일</label><input class="inp" id="lg-email" type="email" autocomplete="username" required>
   <label for="lg-pw">비밀번호</label><input class="inp" id="lg-pw" type="password" autocomplete="current-password" required>
   <button type="submit" class="btn p lg-go" id="lg-go">로그인</button></form>

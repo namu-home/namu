@@ -583,7 +583,7 @@ window.addEventListener("resize",setHubH);setTimeout(setHubH,0);
 function expList(){return ulist().filter(function(u){return u.name}).map(function(u){var e=nextExp(u),pe=(u.implied&&u.prevExpiry)?expFrom(u.prevExpiry,termOf(u)):null;
    return {u:u,e:e,pe:pe,soon:!!(e&&e.days<=WARN_DAYS)||!!(pe&&pe.days<=WARN_DAYS),todo:!!(e&&e.days<=WARN_DAYS),sd:pe?pe.days:(e?e.days:9999)}}).filter(function(x){return x.e}).sort(function(a,b){return a.sd-b.sd})}
 function renderTabs(R){var n=expList().filter(function(x){return x.todo}).length;
-  var T=[["sum","Home"],["home","전체 현황"],["b","건물별"],["expiry","만기 알림",n],["market","매물장"],["loans","이자계산"],["costs","지출"]];
+  var T=[["sum","Home"],["home","전체 현황"],["b","건물"],["expiry","만기 알림",n],["market","매물장"],["loans","이자계산"],["costs","지출"]];
   var on={cost:"costs",sum:"sum",home:"home",b:"b",u:"b",exp:"expiry",m:"market",loans:"loans"}[R.v];
   $("#tabs").innerHTML=T.map(function(t){return '<button type="button" class="tab'+(on===t[0]?" on":"")+'" data-go="'+(t[0]==="b"?"b-"+(curBid(R)||firstBid()):t[0])+'">'+t[1]+(t[2]?'<span class="cnt">'+t[2]+'</span>':"")+'</button>'}).join("")}
 function firstBid(){var b=blist()[0];return b?b.id:""}

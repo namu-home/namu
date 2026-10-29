@@ -173,7 +173,7 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .only-wide{display:block}.only-narrow{display:none}
 @media (max-width:720px){.only-wide{display:none}.only-narrow{display:block}}
 @media (max-width:720px){.card-h.only-narrow{display:flex}}
-.hug-in .kv-v{flex-wrap:wrap}
+.hug-in .kv-v{flex-wrap:wrap}.hug-m .cell.w{min-width:110px;width:120px}
 .ugrp{margin-bottom:14px}
 .ugrp-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 2px;border:0;background:transparent;width:100%;text-align:left}
 .ugrp-h b{font-size:16px;letter-spacing:-.03em}
@@ -889,7 +889,7 @@ function curCols(){var c={buildings:{},units:{},ledgers:{},market:{},meta:{}};
   Object.keys(S.l).forEach(function(k){c.ledgers[k]={rows:S.l[k]}});
   Object.keys(S.m).forEach(function(k){var d=JSON.parse(JSON.stringify(S.m[k]));delete d.id;c.market[k]=d});
   if(S.got.loans)c.meta.loans={rows:S.loans};if(S.got.hug&&S.hug)c.meta.hug=S.hug;if(S.got.exp)c.meta.expenses={rows:S.exp.rows||[],jong:jongRows()};return c}
-var FL={name:"임차인",phone:"연락처",ho:"호수",type:"방 구조",deposit:"보증금",rent:"월세",mgmt:"관리비",payDay:"차임일",moveIn:"입주일",expiry:"계약 만기",term:"계약기간",carry:"이월 금액",limit:"미납 기준",memo:"비고",autoBill:"자동 청구",terminate:"계약 해지",termExpiry:"해지 종료일",newContract:"새 계약",moveInPlan:"입주 예정일",implied:"묵시적갱신 체크",price:"매매가",loan:"융자",rate:"이율",addr:"소재지",comp:"세대 현황",footer:"하단 문구",rows:"내용",hugAppr:"감정평가액",hugPrelim:"예비 감정평가",hugMulti:"다세대 계산",hugRefUnit:"기준 호실",hugRefPrice:"기준 호실 감정평가금액",area:"전용면적",hugPub:"공시가격",hugMort:"근저당권 합계"};
+var FL={name:"임차인",phone:"연락처",ho:"호수",type:"방 구조",deposit:"보증금",rent:"월세",mgmt:"관리비",payDay:"차임일",moveIn:"입주일",expiry:"계약 만기",term:"계약기간",carry:"이월 금액",limit:"미납 기준",memo:"비고",autoBill:"자동 청구",terminate:"계약 해지",termExpiry:"해지 종료일",newContract:"새 계약",moveInPlan:"입주 예정일",implied:"묵시적갱신 체크",price:"매매가",loan:"융자",rate:"이율",addr:"소재지",comp:"세대 현황",footer:"하단 문구",rows:"내용",hugAppr:"감정평가액",hugPrelim:"예비 감정평가",hugMulti:"다세대 계산",hugRefUnit:"기준 호실",hugRefPrice:"기준 호실 감정평가금액",area:"전용면적",pub:"공시가격",hugPub:"공시가격",hugMort:"근저당권 합계"};
 function ulabel(id,cols){var u=(cols.units[id])||S.u[id]||{};return bname(u.bid)+" "+(u.ho||id)+(u.name?" "+u.name:"")}
 function ledUnpaid(rows,uid,cols){var u=cols.units[uid]||S.u[uid]||{};return (+u.carry||0)+(rows||[]).reduce(function(s,r){return s+rowUnpaid(r)},0)}
 function diffCols(f,c){var out=[],cols=["buildings","units","ledgers","market","meta"];
@@ -1118,7 +1118,9 @@ function hugPrior(u){var d=+u.deposit||0;
 function hugMultiPrice(b){if(!b||!b.hugMulti)return 0;var ru=b.hugRefUnit&&S.u[b.hugRefUnit],ra=ru?(+ru.area||0):0;if(!(ra>0)||!(+b.hugRefPrice>0))return 0;var bid=b.id||(ru&&ru.bid);
   return (+b.hugRefPrice)/ra*ulist(bid).reduce(function(s2,u){return s2+(+u.area||0)},0)}
 function hugAppr(b){var mp=hugMultiPrice(b);if(mp>0)return mp;return b.hugAppr!=null?(+b.hugAppr||0):(b.hugSrc!=="pub"?(+b.hugPrice||0):0)}
-function hugPub(b){return b.hugPub!=null?(+b.hugPub||0):(b.hugSrc==="pub"?(+b.hugPrice||0):0)}
+/* 다세대는 호실마다 공시가격(units.pub)이 있고, 그 합이 건물 공시가격 */
+function hugMultiPub(b){if(!b||!b.hugMulti)return 0;var bid=b.id||((S.u[b.hugRefUnit]||{}).bid);if(!bid)return 0;return ulist(bid).reduce(function(s2,u){return s2+(+u.pub||0)},0)}
+function hugPub(b){var mp=hugMultiPub(b);if(mp>0)return mp;return b.hugPub!=null?(+b.hugPub||0):(b.hugSrc==="pub"?(+b.hugPrice||0):0)}
 function hugSrcOf(b){if(b.hugPrelim)return hugPub(b)>0?"pub":"";var a=hugAppr(b),pu=hugPub(b),v=hugValid(b);if(a>0&&(!v||v.ok||!pu))return "appr";if(pu>0)return "pub";return ""}
 S.hugView={};
 function hugExp(bid){var b=S.b[bid]||{};return !!(b.hugPrelim&&hugAppr(b)>0&&S.hugView[bid]==="exp")}
@@ -1132,20 +1134,20 @@ function hugCalc(bid){var b=S.b[bid]||{},sd=hugStd(),src=hugExp(bid)?"appr":hugS
   var vac=list.filter(function(o){return o.vac});
   /* 다세대: 호실마다 면적 비율로 주택가격·담보를 나눠 계산 (현화리 290-4 시트와 같은 식) */
   var multi=null;if(b.hugMulti){var ru=b.hugRefUnit&&S.u[b.hugRefUnit]?S.u[b.hugRefUnit]:null,ra=ru?(+ru.area||0):0,per=ra>0?(+b.hugRefPrice||0)/ra:0,us=ulist(bid),ta=us.reduce(function(s2,u){return s2+(+u.area||0)},0);
-    multi={ru:ru,per:per,ta:ta,rows:us.map(function(u){var a=+u.area||0,pr=a*per,mo=ta>0?M*a/ta:0,dp=(cu&&u.id===cu.id)?dep:(+u.deposit||0),g=dp+mo;return {u:u,a:a,pr:pr,mo:mo,dp:dp,g:g,rl:pr>0?g/pr:0,rt:pr>0?g/(pr*0.9):0}})}}
+    multi={pubMode:src==="pub",ru:ru,per:per,ta:ta,rows:us.map(function(u){var a=+u.area||0,pr=src==="pub"?(+u.pub||0)*1.4:a*per,mo=ta>0?M*a/ta:0,dp=(cu&&u.id===cu.id)?dep:(+u.deposit||0),g=dp+mo;return {u:u,a:a,pr:pr,mo:mo,dp:dp,g:g,rl:pr>0?g/pr:0,rt:pr>0?g/(pr*0.9):0}})}}
   return {P:P,src:src,PL:PL,PT:PT,M:M,cu:cu,dep:dep,list:list,prior:prior,debt:debt,L:L,T:T,sd:sd,vac:vac,multi:multi}}
 function hugMultiHtml(bid,c){var m=c.multi;if(!m)return "";var b=S.b[bid],ro=S.canWrite?"":" readonly",dis=S.canWrite?"":" disabled",sd=c.sd;
   var pc=function(x){return (Math.round(x*1000)/10).toFixed(1)+"%"},col=function(v,lim){return '<b class="'+(v<=lim+1e-9?"neg":"pos")+'">'+pc(v)+'</b>'};
   var ro2='<option value="">기준 호실 고르기</option>'+ulist(bid).map(function(u){return '<option value="'+u.id+'"'+(m.ru&&m.ru.id===u.id?" selected":"")+'>'+esc(u.ho)+'</option>'}).join("");
-  var T={a:0,pr:0,mo:0,dp:0,g:0};m.rows.forEach(function(r){T.a+=r.a;T.pr+=r.pr;T.mo+=r.mo;T.dp+=r.dp;T.g+=r.g});
+  var T={a:0,pr:0,mo:0,dp:0,g:0,pb:0};m.rows.forEach(function(r){T.pb+=+r.u.pub||0;T.a+=r.a;T.pr+=r.pr;T.mo+=r.mo;T.dp+=r.dp;T.g+=r.g});
   return '<div class="hug-m"><h4>다세대 · 호실별 계산</h4><div class="hug-in">'+
     '<div class="kv"><label>기준 호실</label><div class="kv-v"><select class="sel" data-hug="'+bid+'|hugRefUnit"'+dis+'>'+ro2+'</select></div></div>'+
-    '<div class="kv"><label>그 호실 감정평가금액</label><div class="kv-v"><input class="inp" inputmode="numeric" data-hug="'+bid+'|hugRefPrice" value="'+(+b.hugRefPrice?won(b.hugRefPrice):"")+'"'+ro+'></div></div>'+
+    '<div class="kv"><label>감정평가금액</label><div class="kv-v"><input class="inp" inputmode="numeric" data-hug="'+bid+'|hugRefPrice" value="'+(+b.hugRefPrice?won(b.hugRefPrice):"")+'"'+ro+'></div></div>'+
     '<div class="kv"><label>1㎡당 금액</label><div class="kv-v"><b class="num">'+won(m.per)+'</b>'+(m.ru&&!(+m.ru.area)?' <small class="pos">기준 호실 면적을 아래 표에 넣어 주세요</small>':'')+'</div></div></div>'+
-    '<div class="scroller"><table class="tbl edit"><thead><tr><th>호수</th><th>전용면적 (㎡)</th><th>주택가격<br><small>면적 × 1㎡당</small></th><th>보증금</th><th>담보<br><small>근저당 × 면적 비율</small></th><th>부채<br><small>보증금 + 담보</small></th><th>임대인 비율<br><small>기준 '+pc(sd.ld)+'</small></th><th>임차인 비율<br><small>주택가격 90% · 기준 '+pc(sd.td)+'</small></th></tr></thead><tbody>'+
-    m.rows.map(function(r){return '<tr'+(c.cu&&c.cu.id===r.u.id?' class="cur"':'')+'><td>'+esc(r.u.ho)+'</td><td><input class="cell s" inputmode="decimal" data-f="unit:'+r.u.id+':area" value="'+(r.a||"")+'"'+ro+'></td><td class="num">'+won(r.pr)+'</td><td class="num">'+won(r.dp)+'</td><td class="num">'+won(r.mo)+'</td><td class="num">'+won(r.g)+'</td><td class="num">'+(r.pr?col(r.rl,sd.ld):'–')+'</td><td class="num">'+(r.pr?col(r.rt,sd.td):'–')+'</td></tr>'}).join("")+
-    '</tbody><tfoot><tr><td>합계</td><td class="num">'+(Math.round(T.a*100)/100)+'</td><td class="num">'+won(T.pr)+'</td><td class="num">'+won(T.dp)+'</td><td class="num">'+won(T.mo)+'</td><td class="num">'+won(T.g)+'</td><td class="num">'+(T.pr?pc(T.g/T.pr):'–')+'</td><td class="num">'+(T.pr?pc(T.g/(T.pr*0.9)):'–')+'</td></tr></tfoot></table></div>'+
-    '<p class="note">기준 호실의 감정평가금액 ÷ 그 호실 면적으로 1㎡당 금액을 구하고, 호실마다 면적만큼 주택가격과 근저당(담보)을 나눕니다. 호실별 주택가격의 합이 건물 감정평가액이 됩니다(위 감정평가액 칸에 자동으로 들어감). 계약 호실은 위 계약 보증금으로 계산합니다.</p></div>'}
+    '<div class="scroller"><table class="tbl edit"><thead><tr><th>호수</th><th>전용면적 (㎡)</th><th>공시가격</th><th>주택가격<br><small>'+(m.pubMode?'공시가격 × 140%':'면적 × 1㎡당')+'</small></th><th>보증금</th><th>담보<br><small>근저당 × 면적 비율</small></th><th>부채<br><small>보증금 + 담보</small></th><th>임대인 비율<br><small>기준 '+pc(sd.ld)+'</small></th><th>임차인 비율<br><small>주택가격 90% · 기준 '+pc(sd.td)+'</small></th></tr></thead><tbody>'+
+    m.rows.map(function(r){return '<tr'+(c.cu&&c.cu.id===r.u.id?' class="cur"':'')+'><td>'+esc(r.u.ho)+'</td><td><input class="cell s" inputmode="decimal" data-f="unit:'+r.u.id+':area" value="'+(r.a||"")+'"'+ro+'></td><td><input class="cell w" inputmode="numeric" data-f="unit:'+r.u.id+':pub" value="'+(+r.u.pub?won(r.u.pub):"")+'"'+ro+'></td><td class="num">'+won(r.pr)+'</td><td class="num">'+won(r.dp)+'</td><td class="num">'+won(r.mo)+'</td><td class="num">'+won(r.g)+'</td><td class="num">'+(r.pr?col(r.rl,sd.ld):'–')+'</td><td class="num">'+(r.pr?col(r.rt,sd.td):'–')+'</td></tr>'}).join("")+
+    '</tbody><tfoot><tr><td>합계</td><td class="num">'+(Math.round(T.a*100)/100)+'</td><td class="num">'+won(T.pb)+'</td><td class="num">'+won(T.pr)+'</td><td class="num">'+won(T.dp)+'</td><td class="num">'+won(T.mo)+'</td><td class="num">'+won(T.g)+'</td><td class="num">'+(T.pr?pc(T.g/T.pr):'–')+'</td><td class="num">'+(T.pr?pc(T.g/(T.pr*0.9)):'–')+'</td></tr></tfoot></table></div>'+
+    '<p class="note">감정평가는 기준 호실의 감정평가금액 ÷ 기준 호실 면적으로 1㎡당 금액을 구해 호실마다 면적만큼 나누고, 그 합이 건물 감정평가액이 됩니다. 공시가격은 호실마다 적고, 그 합이 건물 공시가격이 됩니다(위 칸에 자동으로 들어감). 지금 계산 기준이 공시가격이면 호실별 주택가격 = 공시가격 × 140%입니다. 근저당(담보)은 면적 비율로 나눕니다. 계약 호실은 위 계약 보증금으로 계산합니다.</p></div>'}
 /* 감정평가 유효기간: 평가일 + 6개월(임차인 보증용). 임대인이 보증보험을 발급받았으면 평가일 + 2년, 그 뒤 연장 */
 function hugValid(b){if(!b||b.hugPrelim||!(hugAppr(b)>0))return null;var d=pd(b.hugDate);if(!d)return null;var lord=!!b.hugLordIssued,end=addMonths(d,lord?24:6),days=Math.round((end-TODAY)/864e5);
   return {end:end,days:days,lord:lord,ok:days>=0,soon:days>=0&&days<=WARN_DAYS}}
@@ -1163,7 +1165,7 @@ function hugCard(bid){var b=S.b[bid],c=hugCalc(bid),sd=c.sd,ro=S.canWrite?"":" r
     '<div class="hug-in">'+
      '<div class="kv"><label>감정평가액</label><div class="kv-v">'+(hugMultiPrice(b)>0?'<b class="num" title="'+esc((S.u[b.hugRefUnit]||{}).ho||"")+' 감정평가금액 기준 · 면적 합으로 자동 계산">'+won(hugAppr(b))+'</b>':num("hugAppr",hugAppr(b),"감정평가 받은 건물만"))+'<label class="hug-pre" title="예비 감정평가면 실제 계산은 공시가격으로 합니다"><input type="checkbox" data-hugpre="'+bid+'"'+(b.hugPrelim?" checked":"")+dis+'> 예비</label></div></div>'+
      '<div class="kv"><label>감정평가일자</label><div class="kv-v"><input class="inp" type="date" data-hug="'+bid+'|hugDate" value="'+esc(b.hugDate||"")+'"'+ro+'></div></div>'+
-     '<div class="kv"><label>공시가격</label><div class="kv-v">'+num("hugPub",hugPub(b),"원")+(hugPub(b)?'<small class="muted" style="white-space:nowrap">× 140% = '+won(hugPub(b)*1.4)+'</small>':'')+'</div></div>'+
+     '<div class="kv"><label>공시가격</label><div class="kv-v">'+(hugMultiPub(b)>0?'<b class="num" title="호실별 공시가격 합">'+won(hugPub(b))+'</b>':num("hugPub",hugPub(b),"원"))+(hugPub(b)?'<small class="muted" style="white-space:nowrap">× 140% = '+won(hugPub(b)*1.4)+'</small>':'')+'</div></div>'+
      (hugAppr(b)>0&&!b.hugPrelim?'<div class="kv"><label>임대인 보증</label><div class="kv-v"><label style="display:inline-flex;gap:6px;align-items:center;cursor:pointer;white-space:nowrap"><input type="checkbox" data-huglord="'+bid+'"'+(b.hugLordIssued?" checked":"")+dis+'> 발급받음</label>'+(b.hugLordIssued?'<input class="inp" type="date" data-hug="'+bid+'|hugLordDate" value="'+esc(b.hugLordDate||"")+'" title="발급일"'+ro+'>':'')+'</div></div>':'')+
      '<div class="kv"><label>적용 비율</label><div class="kv-v hug-pct">임대인 <input class="inp" inputmode="decimal" data-hug="'+bid+'|hugLord" value="'+((b.hugLord==null||b.hugLord==="")?100:b.hugLord)+'"'+ro+'>% · 임차인 <input class="inp" inputmode="decimal" data-hug="'+bid+'|hugTen" value="'+((b.hugTen==null||b.hugTen==="")?90:b.hugTen)+'"'+ro+'>%</div></div>'+
      '<div class="kv"><label>근저당권 합계</label><div class="kv-v">'+num("hugMort",b.hugMort,"등기부 채권최고액 합계")+'</div></div>'+
@@ -1230,7 +1232,7 @@ function render(nav){
 
 /* ---------- 입력 처리 ---------- */
 document.addEventListener("change",function(e){var t=e.target,a;
-  if((a=t.getAttribute("data-f"))){var p=a.split(":"),kind=p[0],id=p[1],f=p[2],v=t.value;var numF={deposit:1,rent:1,mgmt:1,payDay:1,carry:1,price:1,loan:1,limit:1,term:1,area:1};
+  if((a=t.getAttribute("data-f"))){var p=a.split(":"),kind=p[0],id=p[1],f=p[2],v=t.value;var numF={deposit:1,rent:1,mgmt:1,payDay:1,carry:1,price:1,loan:1,limit:1,term:1,area:1,pub:1};
     if(numF[f])v=toNum(v);
     if(f==="autoBill")v=(v!=="off");
     if(kind==="unit"){var o={};o[f]=v;saveUnit(id,o);if(f==="autoBill"&&v)autoBill(true)}

@@ -23,7 +23,7 @@
 - `ledgers/{uid}`: `{rows:[{due, rent, mgmt, rDate, rType, rAmt, mDate, mType, mAmt, note, sub?}]}` — 입금은 rDate/rAmt 한 칸에 적음(mDate/mAmt는 옛 자료 호환용), `sub:true` = 위 청구에 딸린 추가 입금 줄
 - `market/{bid}`: 매물장 시세 (price, loan, rate, rows:[{floor, ho, dep, rent, type, note}], footer) — 단위 만원
 - `meta/loans`: `{rows:[{bid, label, bank, amount, rate, kind, months, start, memo}]}` 이자·지출 화면 (`bid:"etc"` = 건물과 상관없는 기타 대출; kind `int`=이자만(기본) · `eq`=원리금균등 · `pr`=원금균등, months=총 기간(개월), start=대출 시작일 → 이번 달 이자·남은 원금·월 상환액 계산. rate는 소수(0.045))
-- `meta/expenses`: `{rows:[{bid, name, amount, cycle:"m"|"y", memo}], jong:[{label, amount, memo}×3]}` 건물별 나가는 돈(건물별 화면) · 종부세 3칸(전체 현황 맨 아래, 1년 금액). 순수익 = 월세+관리비 − 이자 − 지출(1년 금액은 ÷12) · `meta/autobill`: 자동 청구 잠금
+- `meta/expenses`: `{rows:[{bid, name, amount, cycle:"m"|"y", memo}], jong:[{label, amount, memo}×3]}` 건물별 공과금·관리 비용과 종부세 3칸(1년 금액) — 둘 다 **지출** 탭(`#costs`)에서 입력, 이자는 이자계산(`#loans`)에서 가져와 한 달 지출 정리. 순수익 = 월세+관리비 − 이자 − 지출(1년 금액은 ÷12) · `meta/autobill`: 자동 청구 잠금
 - `photos/{bid}`: 건물 사진 `{data: JPEG data URI, w, h, at}` — 화면에서 최대 1280px로 줄여 약 700KB 이하로 저장. Firebase Storage는 결제 요금제가 필요해서 쓰지 않음
 - `access/{email}`: `{role: "edit" | "view", at}` 승인 목록 (관리자만 쓰기)
 - `meta/backup`: `{at, by}` 마지막 백업 시각. 머리글 **⤓ 백업** 버튼(관리자만)이 30일 지나면 진하게 바뀜
@@ -34,6 +34,8 @@
 사용자가 이 파일을 채팅에 올리고 "백업해줘"라고 하면 claude.ai 프로젝트 "희재 작업장"의 `백업/` 폴더에 `project_write`(local_path)로 원래 이름 그대로 저장하고 건물·호실·입금내역·사진 수를 알린다. 자세한 절차는 프로젝트 문서 `claude/NAMU 앱 수정 안내.md`. 백업 파일은 이 저장소에 절대 넣지 않는다.
 
 화면: 첫 화면은 **오늘의 요약**(`#sum`, 빈 주소도 여기) — 오늘 챙길 일(오늘·7일 안 차임일, 오래 밀린 미납 5곳), 이번 달 수금(지난달 같은 날 비교), 3개월 안 일정(만기·해지 퇴실·입주 예정), 건물 카드. 전체 현황은 `#home`.
+
+입력 중 화면 갱신: `sched()`는 30ms 뒤 포커스를 보고 입력 칸에 있으면 미룸(칸을 옮기는 순간 다시 그려 다음 칸 입력이 날아가던 문제 방지). 이자계산의 대출 줄은 건물을 바꿔도 그 줄을 다 채우고 나갈 때 건물 묶음으로 옮김(`S.lfz`).
 
 주요 계산: 미납 = 월세+관리비−입금(청구일이 지난 줄만, sub 줄은 입금만 뺌). 만기는 계약기간(입주일~만기일)만큼 묵시적갱신. 자동 청구는 차임일 당일, 마지막 청구 후 92일 넘으면 멈춤.
 

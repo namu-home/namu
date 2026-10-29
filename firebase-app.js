@@ -169,7 +169,7 @@ async function backup() {
   try {
   alertMsg("백업 파일을 만드는 중입니다…");
   const cols = {};
-  for (const c of ["buildings", "units", "ledgers", "market", "meta", "photos"]) { cols[c] = {}; const q = await getDocs(fcol(fs, c)); q.forEach((d) => { if (!(c === "meta" && d.id !== "loans")) cols[c][d.id] = d.data(); }); }
+  for (const c of ["buildings", "units", "ledgers", "market", "meta", "photos"]) { cols[c] = {}; const q = await getDocs(fcol(fs, c)); q.forEach((d) => { if (!(c === "meta" && d.id !== "loans" && d.id !== "expenses")) cols[c][d.id] = d.data(); }); }
   const d = new Date(), p = (n) => String(n).padStart(2, "0"), at = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
   const id = at.replace(/\D/g, "");
   await downloads.save({ filename: `NAMU_backup_${at.slice(0, 10)}_${p(d.getHours())}${p(d.getMinutes())}.json`, data: new Blob([JSON.stringify({ id, at, cols })], { type: "application/json" }) });

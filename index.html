@@ -371,6 +371,7 @@ input[type=date]::-webkit-datetime-edit{display:inline-flex;justify-content:cent
 .adm-sec h4{margin:0 0 6px;font-size:14px;color:var(--accent-ink)}
 .adm-add{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.adm-add .inp{flex:1 1 220px;height:34px;text-align:left!important}
 .adm-btns{display:flex;flex-wrap:wrap;gap:8px}
+.tbl .cell.memo-c{min-width:160px}.tbl .cell.s{min-width:64px;width:64px}.tbl.loans td small{font-size:11px;font-weight:400}.tbl.loans select.cell{min-width:118px}.tbl.loans select.cell.w{min-width:150px}.tbl td a,.tbl tr.grp .gname a{color:var(--accent-ink);text-decoration:none;font-weight:700}
 /* 오늘의 요약 */
 .sum-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:4px 0 14px}
 .sum-head h2{margin:2px 0 0;font-size:22px;letter-spacing:-.04em}
@@ -482,7 +483,7 @@ function expTag(u){if(!u.name)return "";var e=nextExp(u);if(!e)return "";
   if(e.days<=WARN_DAYS){var cls=e.days<=31?"bad":"warn";return '<span class="tag '+cls+'">만기 '+(e.days===0?"오늘":"D-"+e.days)+'</span>'}return ""}
 
 /* ---------- 상태 ---------- */
-var S={fold:{},b:{},u:{},l:{},m:{},loans:[],got:{},db:null,canWrite:true,filter:"all",q:"",asc:false,showAllExp:false};
+var S={fold:{},b:{},u:{},l:{},m:{},loans:[],exp:{rows:[],jong:[]},got:{},db:null,canWrite:true,filter:"all",q:"",asc:false,showAllExp:false};
 function blist(){return Object.keys(S.b).map(function(k){return S.b[k]}).sort(function(a,b){return (a.order||0)-(b.order||0)})}
 function ulist(bid){var bo={};blist().forEach(function(b,i){bo[b.id]=i});
   return Object.keys(S.u).map(function(k){return S.u[k]}).filter(function(u){return !bid||u.bid===bid})
@@ -511,7 +512,7 @@ function underLimit(u,x){return x>0&&(+u.limit||0)>0&&x<=(+u.limit)}
 function unpaidHtml(u,x){if(!x)return '<span class="muted">0</span>';var under=underLimit(u,x),m=monthsOf(u,x);
   return '<span class="'+(under?"under":x>0?"pos":"neg")+'">'+won(x)+'</span>'+(m?'<span class="mon'+(under?" under":"")+'">'+m+'</span>':'')}
 function bname(id){return S.b[id]?S.b[id].name:"(건물 없음)"}
-function loanMonthly(bid){return S.loans.filter(function(l){return !bid||l.bid===bid}).reduce(function(s,l){return s+(+l.amount||0)*(+l.rate||0)/12},0)}
+function loanMonthly(bid){return S.loans.filter(function(l){return !bid||l.bid===bid}).reduce(function(s,l){return s+loanCalc(l).int},0)}
 
 try{S.fold=JSON.parse(localStorage.getItem("namu.fold")||"{}")||{}}catch(_){S.fold={}}
 function saveFold(){try{localStorage.setItem("namu.fold",JSON.stringify(S.fold))}catch(_){}}
@@ -558,7 +559,7 @@ window.addEventListener("hashchange",function(){render(true)});
 function expList(){return ulist().filter(function(u){return u.name}).map(function(u){var e=nextExp(u),pe=(u.implied&&u.prevExpiry)?expFrom(u.prevExpiry,termOf(u)):null;
    return {u:u,e:e,pe:pe,soon:!!(e&&e.days<=WARN_DAYS)||!!(pe&&pe.days<=WARN_DAYS),todo:!!(e&&e.days<=WARN_DAYS),sd:pe?pe.days:(e?e.days:9999)}}).filter(function(x){return x.e}).sort(function(a,b){return a.sd-b.sd})}
 function renderTabs(R){var n=expList().filter(function(x){return x.todo}).length;
-  var T=[["sum","오늘"],["home","전체 현황"],["b","건물별"],["expiry","만기 알림",n],["market","매물장"],["loans","이자계산"]];
+  var T=[["sum","오늘"],["home","전체 현황"],["b","건물별"],["expiry","만기 알림",n],["market","매물장"],["loans","이자·지출"]];
   var on={sum:"sum",home:"home",b:"b",u:"b",exp:"expiry",m:"market",loans:"loans"}[R.v];
   $("#tabs").innerHTML=T.map(function(t){return '<button type="button" class="tab'+(on===t[0]?" on":"")+'" data-go="'+(t[0]==="b"?"b-"+(curBid(R)||firstBid()):t[0])+'">'+t[1]+(t[2]?'<span class="cnt">'+t[2]+'</span>':"")+'</button>'}).join("")}
 function firstBid(){var b=blist()[0];return b?b.id:""}
@@ -566,7 +567,7 @@ function curBid(R){if(R.v==="b"||R.v==="m")return R.id;if(R.v==="u"&&S.u[R.id])r
 function renderJump(R){var bid=curBid(R)||"";var uid=R.v==="u"?R.id:"";
   var c=R.v==="sum"?'<b>오늘의 요약</b>':'<a href="#home">전체 현황</a>';
   if(R.v==="exp")c+='<span class="sep">›</span><b>만기 알림</b>';
-  if(R.v==="loans")c+='<span class="sep">›</span><b>이자계산</b>';
+  if(R.v==="loans")c+='<span class="sep">›</span><b>이자 · 지출</b>';
   if(bid&&S.b[bid]){c+='<span class="sep">›</span>'+(R.v==="b"?'<b>'+esc(bname(bid))+'</b>':'<a href="#b-'+bid+'">'+esc(bname(bid))+'</a>')}
   if(R.v==="m")c+='<span class="sep">›</span><b>매물장</b>';
   if(uid&&S.u[uid])c+='<span class="sep">›</span><b>'+esc(S.u[uid].ho)+(S.u[uid].name?' · '+esc(S.u[uid].name):'')+'</b>';
@@ -625,7 +626,7 @@ function viewSum(){
     (ev.length?ev.map(function(o){var n=Math.round((o.d-TODAY)/864e5);return '<a class="sl ev" href="#u-'+o.u.id+'"><span class="ev-d num"><b>'+mdw(o.d)+'</b><em>'+(n?'D-'+n:'오늘')+'</em></span><span class="sl-l"><span class="tag '+o.k+'">'+o.t+'</span> <b>'+esc(bname(o.u.bid))+' '+esc(o.u.ho)+'</b> '+esc(o.u.name)+'</span></a>'}).join(""):'<p class="sum-none">3개월 안에 만기·퇴실·입주 일정이 없습니다.</p>')+'</div>';
   h+='<div class="sum-grid"><div class="card sum-card sum-today"><div class="card-h"><h3>오늘 챙길 일</h3></div>'+t1+'</div><div class="sum-col">'+t2+t3+'</div></div>';
   /* 4. 건물 카드 */
-  h+='<div class="card-h" style="margin-top:6px"><h3>건물</h3></div><div class="bc-grid">'+blist().map(function(b){var us=ulist(b.id),t=totals(us),net=t.rent+t.mgmt-loanMonthly(b.id),ph=S.ph[b.id];if(ph===undefined)loadPhoto(b.id);
+  h+='<div class="card-h" style="margin-top:6px"><h3>건물</h3></div><div class="bc-grid">'+blist().map(function(b){var us=ulist(b.id),t=totals(us),net=t.rent+t.mgmt-loanMonthly(b.id)-expMonthly(b.id),ph=S.ph[b.id];if(ph===undefined)loadPhoto(b.id);
     return '<a class="bc" href="#b-'+b.id+'"><span class="bc-ph">'+(ph&&ph.data?'<img src="'+ph.data+'" alt="">':namuTree(44))+'</span><span class="bc-b"><b>'+esc(b.name)+'</b>'+
       '<span class="bc-r"><span>입주 <b class="num">'+t.occ+'/'+t.n+'</b></span><span>미납 <b class="num'+(t.un>0?" pos":"")+'">'+won(t.un)+'</b></span></span>'+
       '<span class="bc-r"><span>월 순수익 <b class="num'+(net<0?" pos":"")+'">'+won(net)+'</b></span></span></span></a>'}).join("")+'</div>';
@@ -677,7 +678,7 @@ function viewHome(){
     if(!shut)tb+=g.us.map(unitRow).join("");
     cards+='<div class="ugrp"><div class="ugrp-h"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'"><span class="fold'+(shut?" shut":"")+'">▼</span><b>'+esc(g.b.name)+'</b></button><span class="num">월 '+won(gt.rent+gt.mgmt)+' · 미납 '+won(gt.un)+'</span></div>'+(shut?'':g.us.map(unitCard).join(""))+'</div>'});
   tb+='</tbody><tfoot><tr><td class="l stick" colspan="3">합계</td><td class="num">'+won(ft.dep)+'</td><td class="num">'+won(ft.rent+ft.mgmt)+'</td><td colspan="4" class="l muted" style="font-weight:400">월세 '+won(ft.rent)+' · 관리비 '+won(ft.mgmt)+'</td><td class="num">'+won(ft.un)+'</td><td colspan="3"></td></tr></tfoot></table></div></div>';
-  return h+tb+cards+'</div>'}
+  return h+tb+cards+'</div>'+jongCard()}
 
 /* ---------- 건물별 ---------- */
 function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물을 찾을 수 없습니다. <a href="#home">전체 현황</a></div>';
@@ -705,6 +706,7 @@ function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물�
     h+='<div class="card only-wide"><div class="card-h"><h3>호실 현황</h3></div><div class="scroller" data-sk="b"><table class="tbl"><thead><tr><th class="l stick">호수</th><th class="l">임차인</th><th class="l">연락처</th><th>보증금</th><th title="월세와 관리비를 더한 금액">월세+관리비</th><th class="c">차임일</th><th class="c">입주일</th><th class="c">만기일</th><th class="c">최근 청구</th><th>미납 금액</th><th title="미납이 이 금액 이하이면 회색으로 표시">기준금액</th><th class="l">비고</th><th class="l">입금 입력 <span style="font-weight:400">(최근 청구에 기록)</span></th></tr></thead><tbody>'+us.map(unitRow).join("")+'</tbody></table></div></div>';
     h+='<div class="only-narrow">'+us.map(unitCard).join("")+'</div>';
   } else h+='<div class="card empty">등록된 호실이 없습니다. 이 건물은 매물장만 관리합니다.</div>';
+  h+=expCard(id);
   return h}
 function fld(label,key,val,cls,ro,num){return '<div class="fld '+(cls||"")+'"><label for="f-'+key.replace(/:/g,"-")+'">'+label+'</label><input class="inp'+(num?" r":"")+'" id="f-'+key.replace(/:/g,"-")+'" data-f="'+key+'"'+(num?' inputmode="numeric"':'')+' value="'+esc(num?(val?won(val):""):val)+'"'+(ro||"")+'></div>'}
 function kv(label,key,val,ro,num,suf,type){var fid="f-"+key.replace(/:/g,"-");
@@ -857,7 +859,7 @@ function curCols(){var c={buildings:{},units:{},ledgers:{},market:{},meta:{}};
   Object.keys(S.u).forEach(function(k){var d=Object.assign({},S.u[k]);delete d.id;c.units[k]=d});
   Object.keys(S.l).forEach(function(k){c.ledgers[k]={rows:S.l[k]}});
   Object.keys(S.m).forEach(function(k){var d=JSON.parse(JSON.stringify(S.m[k]));delete d.id;c.market[k]=d});
-  if(S.got.loans)c.meta.loans={rows:S.loans};return c}
+  if(S.got.loans)c.meta.loans={rows:S.loans};if(S.got.exp)c.meta.expenses={rows:S.exp.rows||[],jong:jongRows()};return c}
 var FL={name:"임차인",phone:"연락처",ho:"호수",type:"방 구조",deposit:"보증금",rent:"월세",mgmt:"관리비",payDay:"차임일",moveIn:"입주일",expiry:"계약 만기",term:"계약기간",carry:"이월 금액",limit:"미납 기준",memo:"비고",autoBill:"자동 청구",terminate:"계약 해지",termExpiry:"해지 종료일",newContract:"새 계약",moveInPlan:"입주 예정일",implied:"묵시적갱신 체크",price:"매매가",loan:"융자",rate:"이율",addr:"소재지",comp:"세대 현황",footer:"하단 문구",rows:"내용"};
 function ulabel(id,cols){var u=(cols.units[id])||S.u[id]||{};return bname(u.bid)+" "+(u.ho||id)+(u.name?" "+u.name:"")}
 function ledUnpaid(rows,uid,cols){var u=cols.units[uid]||S.u[uid]||{};return (+u.carry||0)+(rows||[]).reduce(function(s,r){return s+rowUnpaid(r)},0)}
@@ -872,7 +874,7 @@ function describe(d,f){var t="",s="";
     s=d.k==="del"?"":(d.k==="add"?na+"줄":"줄 "+no+" → "+na)+" · 미납 "+(d.old?won(ledUnpaid(d.old.rows,d.id,f))+" → ":"")+won(ledUnpaid(d.data.rows,d.id,f))}
   else if(d.col==="buildings"){t="건물 "+((d.data||d.old).name||d.id);if(d.k==="chg"){s=Object.keys(Object.assign({},d.data,d.old)).filter(function(k){return stab(d.data[k])!==stab(d.old[k])}).map(function(k){return FL[k]||k}).join(", ")+" 변경"}}
   else if(d.col==="market"){t=bname(d.id)+" 매물장 시세"}
-  else if(d.col==="meta"){t=d.id==="loans"?"이자계산 (융자 목록)":d.id}
+  else if(d.col==="meta"){t=d.id==="loans"?"이자계산 (융자 목록)":d.id==="expenses"?"나가는 돈 · 종부세":d.id}
   else if(d.col==="photos"){t=bname(d.id)+" 건물 사진"}
   return {t:t,s:s}}
 function openImport(){var inp=document.createElement("input");inp.type="file";inp.accept=".html,.htm,.json,text/html,application/json";inp.hidden=true;document.body.appendChild(inp);setTimeout(function(){if(inp.isConnected&&!inp.files.length)inp.remove()},600000);
@@ -882,7 +884,7 @@ function openImport(){var inp=document.createElement("input");inp.type="file";in
       var data;try{data=JSON.parse(m[1].replace(/<\\\//g,"</"))}catch(e){toast("파일 안의 데이터를 읽지 못했습니다.");return}
       if(!data||!data.cols||!data.cols.units){toast("파일 안에 호실 데이터가 없습니다.");return}
       var f=data.cols;["buildings","units","ledgers","market","meta"].forEach(function(k){f[k]=f[k]||{}});
-      var diffs=diffCols(f,curCols()).filter(function(d){return !(d.col==="meta"&&d.id!=="loans")});
+      var diffs=diffCols(f,curCols()).filter(function(d){return !(d.col==="meta"&&d.id!=="loans"&&d.id!=="expenses")});
       var fp=f.photos||{},pids=Object.keys(fp).filter(function(b){return fp[b]&&fp[b].data});
       Promise.all(pids.map(function(b){return S.db.doc("photos/"+b).get().then(function(x){return x.exists?x.data():null},function(){return null})})).then(function(cur){
         pids.forEach(function(b,i){var c=cur[i];if(!c)diffs.push({col:"photos",id:b,k:"add",data:fp[b]});else if(c.data!==fp[b].data)diffs.push({col:"photos",id:b,k:"chg",data:fp[b],old:c})});
@@ -973,17 +975,73 @@ function exportSheet(fmt){var b=S.b[PM.bid],name=b.name+" "+(PM.kind==="mk"?"매
     return dl.save({filename:f.n,data:f.d}).then(function(){toast(f.n+" 저장")},function(e){if(e&&e.code!=="declined")toast("저장하지 못했습니다: "+(e.message||e.code))})})
   }).catch(function(e){toast("파일을 만들지 못했습니다. 잠시 후 다시 눌러 주세요.")})}
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&PM){PM=null;renderPrint()}});
-/* ---------- 이자계산 ---------- */
-function viewLoans(){var ro=S.canWrite?"":" readonly";var all=ulist(),t=totals(all),tot=0,amt=0;
+/* ---------- 대출 상환 계산 (이자만 · 원리금균등 · 원금균등) ---------- */
+var LK={int:"이자만",eq:"원리금균등",pr:"원금균등"};
+function loanCalc(l){var P=+l.amount||0,r=(+l.rate||0)/12,N=Math.round(+l.months||0),kd=LK[l.kind]?l.kind:"int";
+  if(kd==="int")return {kind:kd,bal:P,int:P*r,pay:P*r,left:null};
+  if(!N)return {kind:kd,bal:P,int:P*r,pay:P*r,left:null,need:true};
+  var s=pd(l.start),k=0;if(s){k=(TODAY.getFullYear()-s.getFullYear())*12+(TODAY.getMonth()-s.getMonth());if(TODAY.getDate()<s.getDate())k--;k=Math.max(0,k)}
+  if(k>=N)return {kind:kd,bal:0,int:0,pay:0,left:0,done:true};
+  var B,A,it;
+  if(kd==="eq"){A=r?P*r/(1-Math.pow(1+r,-N)):P/N;B=r?P*Math.pow(1+r,k)-A*(Math.pow(1+r,k)-1)/r:P-A*k;it=B*r}
+  else{var pr=P/N;B=P-pr*k;it=B*r;A=pr+it}
+  return {kind:kd,bal:Math.max(0,B),int:it,pay:A,left:N-k,nostart:!s}}
+function loanPay(bid){return S.loans.filter(function(l){return !bid||l.bid===bid}).reduce(function(s,l){return s+loanCalc(l).pay},0)}
+/* ---------- 나가는 돈 (건물별 지출) · 종부세 ---------- */
+function expM(r){var a=+r.amount||0;return r.cycle==="y"?a/12:a}
+function expMonthly(bid){return (S.exp.rows||[]).filter(function(r){return !bid||r.bid===bid}).reduce(function(s,r){return s+expM(r)},0)}
+function jongRows(){var j=S.exp.jong||[];return [0,1,2].map(function(i){return Object.assign({label:"",amount:0,memo:""},j[i]||{})})}
+function jongYear(){return jongRows().reduce(function(s,r){return s+(+r.amount||0)},0)}
+function saveExp(){var d={rows:(S.exp.rows||[]).slice(),jong:jongRows()};save("meta/expenses",function(){return S.db.doc("meta/expenses").set(d)})}
+var EX_NAMES=["수도세","공동전기","인터넷·TV","재산세","청소비","승강기 유지보수","소방 점검","화재보험","정화조","수선비"];
+function expCard(id){var ro=S.canWrite?"":" readonly",rs=[];(S.exp.rows||[]).forEach(function(r,i){if(r.bid===id)rs.push({r:r,i:i})});var mt=0;
+  var h='<div class="card"><div class="card-h"><h3>나가는 돈<span class="sub">공과금 · 관리 비용 · 세금</span></h3>'+(S.canWrite&&rs.length?'<button type="button" class="btn sm" data-act="ex-add" data-b="'+id+'">+ 항목 추가</button>':'')+'</div>';
+  if(!rs.length){h+='<div class="empty">아직 적은 항목이 없습니다.'+(S.canWrite?'<div style="margin-top:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn t" data-act="ex-preset" data-b="'+id+'">자주 쓰는 항목 넣기 (수도세 · 공동전기 · 인터넷·TV · 재산세)</button><button type="button" class="btn" data-act="ex-add" data-b="'+id+'">+ 빈 항목 추가</button></div>':'')+'</div></div>';return h}
+  h+='<datalist id="ex-names">'+EX_NAMES.map(function(n){return '<option value="'+n+'">'}).join("")+'</datalist><div class="scroller"><table class="tbl edit"><thead><tr><th>항목</th><th>금액 (원)</th><th>주기</th><th>한 달로 치면</th><th>메모</th><th></th></tr></thead><tbody>'+
+    rs.map(function(o){var r=o.r,i=o.i,m=expM(r);mt+=m;
+      return '<tr><td><input class="cell" list="ex-names" data-ex="'+i+'|name" value="'+esc(r.name)+'" placeholder="예: 수도세"'+ro+'></td>'+
+        '<td><input class="cell w" inputmode="numeric" data-ex="'+i+'|amount" value="'+(+r.amount?won(r.amount):"")+'"'+ro+'></td>'+
+        '<td><select class="cell" data-ex="'+i+'|cycle"'+(S.canWrite?"":" disabled")+'><option value="m"'+(r.cycle!=="y"?" selected":"")+'>매월</option><option value="y"'+(r.cycle==="y"?" selected":"")+'>1년에 한 번</option></select></td>'+
+        '<td class="num">'+won(m)+'</td><td><input class="cell memo-c" data-ex="'+i+'|memo" value="'+esc(r.memo||"")+'" placeholder="메모"'+ro+'></td>'+
+        '<td>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="ex-del" data-i="'+i+'" data-confirm="삭제?" aria-label="삭제">✕</button>':'')+'</td></tr>'}).join("")+
+    '</tbody><tfoot><tr><td colspan="3">합계</td><td class="num">한 달 '+won(mt)+'</td><td class="num">1년 '+won(mt*12)+'</td><td></td></tr></tfoot></table></div>'+
+    '<p class="note">재산세처럼 1년에 한 번(또는 나눠서) 내는 돈은 1년 금액을 적고 주기를 <b>1년에 한 번</b>으로 고르면 한 달 금액으로 나눠 계산합니다. 매달 금액이 달라지는 수도세·전기는 평소 금액을 적어 두세요.</p></div>';
+  return h}
+function jongCard(){var ro=S.canWrite?"":" readonly",js=jongRows(),y=jongYear();
+  return '<div class="card"><div class="card-h"><h3>종합부동산세<span class="sub">1년에 내는 금액</span></h3></div><div class="scroller"><table class="tbl edit"><thead><tr><th>구분</th><th>1년 금액 (원)</th><th>한 달로 치면</th><th>메모</th></tr></thead><tbody>'+
+    js.map(function(r,i){return '<tr><td><input class="cell" data-jg="'+i+'|label" value="'+esc(r.label)+'" placeholder="종부세 '+(i+1)+' (예: 명의자)"'+ro+'></td><td><input class="cell w" inputmode="numeric" data-jg="'+i+'|amount" value="'+(+r.amount?won(r.amount):"")+'"'+ro+'></td><td class="num">'+won((+r.amount||0)/12)+'</td><td><input class="cell memo-c" data-jg="'+i+'|memo" value="'+esc(r.memo||"")+'" placeholder="메모"'+ro+'></td></tr>'}).join("")+
+    '</tbody><tfoot><tr><td>합계</td><td class="num">'+won(y)+'</td><td class="num">'+won(y/12)+'</td><td></td></tr></tfoot></table></div><p class="note">이자·지출 화면의 순수익 계산에 한 달 금액으로 나눠 들어갑니다.</p></div>'}
+/* ---------- 이자 · 지출 ---------- */
+function viewLoans(){var ro=S.canWrite?"":" readonly";var all=ulist(),t=totals(all);
   var bo=function(sel){return blist().map(function(b){return '<option value="'+b.id+'"'+(b.id===sel?" selected":"")+'>'+esc(b.name)+'</option>'}).join("")+'<option value="etc"'+(sel==="etc"?" selected":"")+'>기타 대출 (건물 무관)</option>'};
-  var h='<section class="hero"><div class="hero-body"><p class="eyebrow">LOAN · 이자계산</p><h1>이자계산</h1><p class="lead">건물별 융자와 그 밖의 대출(신용대출·사업자대출 등)을 적으면 한 달 이자가 계산되고, 전체 현황의 월세 − 이자에 반영됩니다. 건물과 상관없는 대출은 건물 칸에서 <b>기타 대출</b>을 고르세요.</p>'+(S.canWrite?'<div class="hero-acts"><button type="button" class="btn p" data-act="loan-add">+ 건물 융자 추가</button><button type="button" class="btn" data-act="loan-add-etc">+ 기타 대출 추가</button></div>':'')+'</div></section><div style="height:16px"></div>';
-  h+='<div class="card"><div class="scroller"><table class="tbl edit"><thead><tr><th class="l">건물</th><th class="l">구분</th><th class="l">은행·기관</th><th>대출금 (원)</th><th>이율 (%)</th><th>한 달 이자</th><th></th></tr></thead><tbody>'+
-   S.loans.map(function(l,i){var mi=(+l.amount||0)*(+l.rate||0)/12;tot+=mi;amt+=+l.amount||0;
-    return '<tr><td><select class="cell l w" data-ln="'+i+'|bid"'+(S.canWrite?"":" disabled")+'>'+bo(l.bid)+'</select></td><td><input class="cell l" data-ln="'+i+'|label" value="'+esc(l.label)+'" placeholder="예: 주담대, 신용대출"'+ro+'></td><td><input class="cell l" data-ln="'+i+'|bank" value="'+esc(l.bank||"")+'" placeholder="예: 농협"'+ro+'></td>'+
-     '<td><input class="cell w" inputmode="numeric" data-ln="'+i+'|amount" value="'+(+l.amount?won(l.amount):"")+'"'+ro+'></td><td><input class="cell" inputmode="decimal" data-ln="'+i+'|rate" value="'+(l.rate?Math.round(l.rate*1e5)/1e3:"")+'"'+ro+'></td>'+
-     '<td class="num"><b>'+won(mi)+'</b></td><td>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="loan-del" data-i="'+i+'" data-confirm="삭제?" aria-label="삭제">✕</button>':'')+'</td></tr>'}).join("")+
-   '</tbody><tfoot><tr><td class="l" colspan="3">합계</td><td class="num">'+won(amt)+'</td><td></td><td class="num">'+won(tot)+'</td><td></td></tr></tfoot></table></div>'+
-   '<div class="yield"><div class="sbox"><span class="l">월세 + 관리비</span><span class="n num">'+won(t.rent+t.mgmt)+'</span></div><div class="sbox"><span class="l">한 달 이자</span><span class="n num">'+won(tot)+'</span></div><div class="sbox'+(t.rent+t.mgmt-tot<0?" bad":" good")+'"><span class="l">월세 − 이자</span><span class="n num">'+won(t.rent+t.mgmt-tot)+'</span></div><div class="sbox"><span class="l">융자 + 보증금</span><span class="n num">'+won(amt+t.dep)+'</span></div></div></div>';
+  var h='<section class="hero"><div class="hero-body"><p class="eyebrow">LOAN · 이자 · 지출</p><h1>이자 · 지출</h1><p class="lead">대출을 건물별로 묶어 한 달 이자와 상환액을 계산합니다. 원리금균등·원금균등 대출은 대출기간과 시작일을 넣으면 이번 달 이자와 남은 원금이 나옵니다. 건물마다 나가는 돈은 <b>건물별</b> 화면의 <b>나가는 돈</b>에서, 종부세는 <b>전체 현황</b> 맨 아래에서 적습니다.</p>'+(S.canWrite?'<div class="hero-acts"><button type="button" class="btn p" data-act="loan-add">+ 건물 융자 추가</button><button type="button" class="btn" data-act="loan-add-etc">+ 기타 대출 추가</button></div>':'')+'</div></section><div style="height:16px"></div>';
+  var groups=blist().map(function(b){return {id:b.id,name:b.name}}).concat([{id:"etc",name:"기타 대출 (건물 무관)"}]);
+  var T={amt:0,bal:0,int:0,pay:0},body="";
+  groups.forEach(function(g){var ls=[];S.loans.forEach(function(l,i){if((l.bid||"")===g.id||(g.id==="etc"&&l.bid!=="etc"&&!S.b[l.bid]))ls.push({l:l,i:i})});if(!ls.length)return;
+    var G={amt:0,bal:0,int:0,pay:0},rws="";
+    ls.forEach(function(o){var l=o.l,i=o.i,c=loanCalc(l),kd=LK[l.kind]?l.kind:"int";G.amt+=+l.amount||0;G.bal+=c.bal;G.int+=c.int;G.pay+=c.pay;
+      rws+='<tr><td><select class="cell l w" data-ln="'+i+'|bid"'+(S.canWrite?"":" disabled")+'>'+bo(l.bid)+'</select></td><td><input class="cell" data-ln="'+i+'|label" value="'+esc(l.label)+'" placeholder="예: 주담대"'+ro+'></td><td><input class="cell" data-ln="'+i+'|bank" value="'+esc(l.bank||"")+'" placeholder="예: 농협"'+ro+'></td>'+
+        '<td><select class="cell" data-ln="'+i+'|kind"'+(S.canWrite?"":" disabled")+'>'+Object.keys(LK).map(function(k){return '<option value="'+k+'"'+(k===kd?" selected":"")+'>'+LK[k]+'</option>'}).join("")+'</select></td>'+
+        '<td><input class="cell w" inputmode="numeric" data-ln="'+i+'|amount" value="'+(+l.amount?won(l.amount):"")+'"'+ro+'></td><td><input class="cell s" inputmode="decimal" data-ln="'+i+'|rate" value="'+(l.rate?Math.round(l.rate*1e5)/1e3:"")+'"'+ro+'></td>'+
+        '<td><input class="cell s" inputmode="numeric" data-ln="'+i+'|months" value="'+(+l.months||"")+'" placeholder="'+(kd==="int"?"":"예: 360")+'"'+ro+'></td><td><input class="cell" type="date" data-ln="'+i+'|start" value="'+esc(l.start||"")+'"'+ro+'></td>'+
+        '<td class="num">'+won(c.bal)+(c.left!=null?'<br><small class="muted">남은 '+c.left+'회</small>':c.need?'<br><small class="pos">기간 입력</small>':'')+(c.done?'<br><small class="muted">상환 끝</small>':'')+'</td><td class="num"><b>'+won(c.int)+'</b></td><td class="num">'+won(c.pay)+'</td>'+
+        '<td><input class="cell memo-c" data-ln="'+i+'|memo" value="'+esc(l.memo||"")+'" placeholder="메모"'+ro+'></td>'+
+        '<td>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="loan-del" data-i="'+i+'" data-confirm="삭제?" aria-label="삭제">✕</button>':'')+'</td></tr>'});
+    T.amt+=G.amt;T.bal+=G.bal;T.int+=G.int;T.pay+=G.pay;
+    body+='<tr class="grp"><td class="l" colspan="4"><span class="gname">'+(g.id==="etc"?esc(g.name):'<a href="#b-'+g.id+'">'+esc(g.name)+'</a>')+'</span> <span class="muted" style="font-weight:400">대출 '+ls.length+'건</span>'+(S.canWrite?' <button type="button" class="btn sm ghost" data-act="loan-add-b" data-b="'+g.id+'">+ 추가</button>':'')+'</td><td class="num">'+won(G.amt)+'</td><td colspan="3"></td><td class="num">'+won(G.bal)+'</td><td class="num">'+won(G.int)+'</td><td class="num">'+won(G.pay)+'</td><td colspan="2"></td></tr>'+rws});
+  h+='<div class="card"><div class="card-h"><h3>대출<span class="sub">건물별로 묶어 보기</span></h3></div>'+(S.loans.length?'<div class="scroller"><table class="tbl edit loans"><thead><tr><th>건물</th><th>구분</th><th>은행·기관</th><th>상환 방식</th><th>대출금 (원)</th><th>이율 (%)</th><th>기간 (개월)</th><th>시작일</th><th>남은 원금</th><th>이번 달 이자</th><th>월 상환액</th><th>메모</th><th></th></tr></thead><tbody>'+body+
+   '</tbody><tfoot><tr><td colspan="4">합계</td><td class="num">'+won(T.amt)+'</td><td colspan="3"></td><td class="num">'+won(T.bal)+'</td><td class="num">'+won(T.int)+'</td><td class="num">'+won(T.pay)+'</td><td colspan="2"></td></tr></tfoot></table></div>':'<div class="empty">아직 적은 대출이 없습니다.</div>')+
+   '<p class="note"><b>이자만</b>: 대출금 × 이율 ÷ 12. <b>원리금균등</b>: 매달 같은 금액(원금+이자)을 갚습니다. <b>원금균등</b>: 원금을 똑같이 나눠 갚고 이자는 남은 원금만큼 붙습니다. 원리금·원금균등은 <b>기간</b>(총 몇 개월)과 <b>시작일</b>(대출 받은 날)을 넣으면 이번 달 기준 남은 원금·이자·상환액이 나옵니다. 금리가 바뀌면 이율만 고치세요. 은행 실제 금액과 몇 원 차이가 날 수 있습니다.</p></div>';
+  /* 건물별 한 달 정리 */
+  var S2={inc:0,int:0,pay:0,ex:0},rows2=blist().map(function(b){var tt=totals(ulist(b.id)),inc=tt.rent+tt.mgmt,it=loanMonthly(b.id),py=loanPay(b.id),ex=expMonthly(b.id);S2.inc+=inc;S2.int+=it;S2.pay+=py;S2.ex+=ex;
+    return '<tr><td class="l"><a href="#b-'+b.id+'">'+esc(b.name)+'</a></td><td class="num">'+won(inc)+'</td><td class="num">'+won(it)+'</td><td class="num">'+won(py)+'</td><td class="num">'+won(ex)+'</td><td class="num"><b class="'+(inc-it-ex<0?"pos":"")+'">'+won(inc-it-ex)+'</b></td><td class="num">'+won(inc-py-ex)+'</td></tr>'}).join("");
+  var ei=loanMonthly("etc"),ep=loanPay("etc"),jm=jongYear()/12;S2.int+=ei;S2.pay+=ep;S2.ex+=jm;
+  if(ei||ep)rows2+='<tr><td class="l">기타 대출</td><td class="num">0</td><td class="num">'+won(ei)+'</td><td class="num">'+won(ep)+'</td><td class="num">0</td><td class="num">'+won(-ei)+'</td><td class="num">'+won(-ep)+'</td></tr>';
+  rows2+='<tr><td class="l"><a href="#home">종부세</a> <small class="muted">(1년 ÷ 12)</small></td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">'+won(jm)+'</td><td class="num">'+won(-jm)+'</td><td class="num">'+won(-jm)+'</td></tr>';
+  var net=S2.inc-S2.int-S2.ex,cash=S2.inc-S2.pay-S2.ex;
+  h+='<div class="card"><div class="card-h"><h3>건물별 한 달 정리</h3></div><div class="scroller"><table class="tbl"><thead><tr><th class="l">건물</th><th>월세 + 관리비</th><th>이자</th><th>월 상환액<br><small>(원금 포함)</small></th><th>나가는 돈<br><small>(한 달)</small></th><th>순수익<br><small>(수입 − 이자 − 지출)</small></th><th>통장에 남는 돈<br><small>(수입 − 상환액 − 지출)</small></th></tr></thead><tbody>'+rows2+
+    '</tbody><tfoot><tr><td class="l">합계</td><td class="num">'+won(S2.inc)+'</td><td class="num">'+won(S2.int)+'</td><td class="num">'+won(S2.pay)+'</td><td class="num">'+won(S2.ex)+'</td><td class="num">'+won(net)+'</td><td class="num">'+won(cash)+'</td></tr></tfoot></table></div>'+
+   '<div class="yield"><div class="sbox"><span class="l">월세 + 관리비</span><span class="n num">'+won(S2.inc)+'</span></div><div class="sbox"><span class="l">한 달 이자</span><span class="n num">'+won(S2.int)+'</span></div><div class="sbox"><span class="l">한 달 나가는 돈 (종부세 포함)</span><span class="n num">'+won(S2.ex)+'</span></div><div class="sbox'+(net<0?" bad":" good")+'"><span class="l">순수익 (한 달)</span><span class="n num">'+won(net)+'</span></div><div class="sbox"><span class="l">순수익 (1년)</span><span class="n num">'+won(net*12)+'</span></div><div class="sbox"><span class="l">융자 + 보증금</span><span class="n num">'+won(T.bal+t.dep)+'</span></div></div></div>';
   return h}
 
 /* ---------- 그리기 ---------- */
@@ -1040,7 +1098,10 @@ document.addEventListener("change",function(e){var t=e.target,a;
   if((a=t.getAttribute("data-mk"))){var q2=a.split("|"),bid=q2[0],i2=+q2[1],f3=q2[2];ensureMk(bid);var r2=Object.assign({},S.m[bid].rows[i2]);
     r2[f3]=t.getAttribute("data-n")?toNum(t.value):t.value;S.m[bid].rows[i2]=r2;saveMarket(bid);sched();return}
   if((a=t.getAttribute("data-ln"))){var q3=a.split("|"),i3=+q3[0],f4=q3[1];var l=Object.assign({},S.loans[i3]);
-    l[f4]=f4==="amount"?toNum(t.value):f4==="rate"?toNum(t.value)/100:t.value;S.loans[i3]=l;saveLoans();sched();return}
+    l[f4]=f4==="amount"||f4==="months"?toNum(t.value):f4==="rate"?toNum(t.value)/100:t.value;S.loans[i3]=l;saveLoans();sched();return}
+  if((a=t.getAttribute("data-ex"))){var q5=a.split("|"),i5=+q5[0],f5=q5[1];S.exp.rows=(S.exp.rows||[]).slice();var er=Object.assign({},S.exp.rows[i5]);
+    er[f5]=f5==="amount"?toNum(t.value):t.value;S.exp.rows[i5]=er;saveExp();sched();return}
+  if((a=t.getAttribute("data-jg"))){var q6=a.split("|"),i6=+q6[0],f6=q6[1];var jr=jongRows();jr[i6][f6]=f6==="amount"?toNum(t.value):t.value;S.exp.jong=jr;saveExp();sched();return}
 });
 var qComp=false;
 function qSchedule(el){S.q=el.value;clearTimeout(qt);qt=setTimeout(function(){if(qComp)return;var p=el.selectionStart;render();var n=$("#q");if(n){n.focus();try{n.setSelectionRange(p,p)}catch(_){}}},250)}
@@ -1108,6 +1169,10 @@ document.addEventListener("click",function(e){
   else if(act==="mk-copy"){ensureMk(bid);var b=S.b[bid];S.m[bid].rows=curRows(bid).map(function(r){return {floor:r.floor,ho:r.ho,dep:r.dep,rent:r.rent,type:r.type,note:""}});S.m[bid].price=b.price;S.m[bid].loan=b.loan;S.m[bid].rate=b.rate;saveMarket(bid);render();toast("현재 매물장을 시세표로 복사했습니다.")}
   else if(act==="loan-add"){S.loans=S.loans.concat([{bid:firstBid(),label:"",bank:"",amount:0,rate:0}]);saveLoans();render()}
   else if(act==="loan-add-etc"){S.loans=S.loans.concat([{bid:"etc",label:"",bank:"",amount:0,rate:0}]);saveLoans();render()}
+  else if(act==="loan-add-b"){S.loans=S.loans.concat([{bid:bid,label:"",bank:"",amount:0,rate:0,kind:"int"}]);saveLoans();render()}
+  else if(act==="ex-add"){S.exp.rows=(S.exp.rows||[]).concat([{bid:bid,name:"",amount:0,cycle:"m",memo:""}]);saveExp();render()}
+  else if(act==="ex-preset"){S.exp.rows=(S.exp.rows||[]).concat([["수도세","m"],["공동전기","m"],["인터넷·TV","m"],["재산세","y"]].map(function(x){return {bid:bid,name:x[0],amount:0,cycle:x[1],memo:""}}));saveExp();render()}
+  else if(act==="ex-del"){S.exp.rows=(S.exp.rows||[]).slice();S.exp.rows.splice(i,1);saveExp();render()}
   else if(act==="loan-del"){S.loans=S.loans.slice();S.loans.splice(i,1);saveLoans();render()}
 });
 
@@ -1149,6 +1214,7 @@ Promise.all([window.claude&&window.claude.use?window.claude.use("db"):Promise.re
   listen("ledgers","l",function(s){var o={};s.docs.forEach(function(d){o[d.id]=(d.data().rows||[]).slice()});S.l=o});
   listen("market","m",function(s){var o={};s.docs.forEach(function(d){o[d.id]=JSON.parse(JSON.stringify(d.data()))});S.m=o});
   db.doc("meta/loans").onSnapshot(function(d){S.loans=d.exists?(d.data().rows||[]).slice():[];S.got.loans=1;sched()},function(){});
+  db.doc("meta/expenses").onSnapshot(function(d){var x=d.exists?d.data():{};S.exp={rows:(x.rows||[]).slice(),jong:(x.jong||[]).slice()};S.got.exp=1;sched()},function(){});
 });
 })();
 </script>

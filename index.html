@@ -376,6 +376,7 @@ input[type=date]::-webkit-datetime-edit{display:inline-flex;justify-content:cent
 .hug-in{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:0 24px;margin-bottom:12px}.hug-pct{gap:4px;white-space:nowrap}.hug-pct .inp{width:64px}
 .hug-t td small,.hug-t th small{font-size:11px;font-weight:400}.hug-std{width:56px;min-width:56px}.hug-sw{display:inline-flex;align-items:center;gap:2px}.hug-v{font-size:13px;padding:3px 10px}
 .hug-d{margin-top:10px}.hug-d summary{cursor:pointer;font-size:13px;padding:6px 2px}.chk.on-frn{border-color:var(--accent)}.hug-val{font-size:13px;border-radius:8px;padding:7px 10px;margin:0 0 10px}.hug-val span{color:var(--muted)}.hug-val.ok{background:var(--teal-soft);color:var(--teal-ink)}.hug-val.warn{background:var(--warn-soft);color:var(--warn)}.hug-val.bad{background:var(--bad-soft);color:var(--bad)}
+.hug-src{font-size:13px;margin:0 0 8px}
 .hug-vac{font-size:12px;color:var(--warn);background:var(--warn-soft);border-radius:8px;padding:6px 10px;margin:0 0 10px}.tbl tr.hug-vrow td{background:var(--warn-soft)}.hug-m{margin-top:14px;border-top:1px solid var(--line2);padding-top:10px}.hug-m h4{margin:0 0 8px;font-size:14px;color:var(--accent-ink)}
 .hsum{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 16px;margin:2px 0 4px}.hsum h1{margin:0;font-size:24px;letter-spacing:-.04em}.hsum h1 small{font-size:13px;font-weight:600;color:var(--muted);margin-left:8px;letter-spacing:0}
 .hsum-l{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;font-size:13px;color:var(--muted)}.hsum-l b{color:var(--fg)}.hsum-f{font-weight:700;color:var(--accent-ink)}.hsum-na{font-size:12px;color:var(--faint)}.tbl td.noauto,.noauto{color:var(--faint)!important;font-weight:400}
@@ -1069,7 +1070,11 @@ function hugPrior(u){var d=+u.deposit||0;
   if(!u.name&&/^101(호)?$/.test(String(u.ho).trim()))return {amt:HUG_101,why:"101호 공실 · 최소 금액"};
   if(!u.name)return {amt:HUG_FRN,why:"공실 · 4,800만 원으로 가정",vac:true};
   return {amt:d,why:""}}
-function hugCalc(bid){var b=S.b[bid]||{},sd=hugStd(),P=(+b.hugPrice||0)*(b.hugSrc==="pub"?1.4:1),PL=P*((b.hugLord==null||b.hugLord==="")?100:+b.hugLord)/100,PT=P*((b.hugTen==null||b.hugTen==="")?90:+b.hugTen)/100,M=+b.hugMort||0;
+/* 감정평가액(hugAppr)과 공시가격(hugPub) 두 칸. 예전 한 칸(hugPrice+hugSrc) 자료도 그대로 읽음 */
+function hugAppr(b){return b.hugAppr!=null?(+b.hugAppr||0):(b.hugSrc!=="pub"?(+b.hugPrice||0):0)}
+function hugPub(b){return b.hugPub!=null?(+b.hugPub||0):(b.hugSrc==="pub"?(+b.hugPrice||0):0)}
+function hugSrcOf(b){var a=hugAppr(b),pu=hugPub(b),v=hugValid(b);if(a>0&&(!v||v.ok||!pu))return "appr";if(pu>0)return "pub";return ""}
+function hugCalc(bid){var b=S.b[bid]||{},sd=hugStd(),src=hugSrcOf(b),P=src==="appr"?hugAppr(b):src==="pub"?hugPub(b)*1.4:0,PL=P*((b.hugLord==null||b.hugLord==="")?100:+b.hugLord)/100,PT=P*((b.hugTen==null||b.hugTen==="")?90:+b.hugTen)/100,M=+b.hugMort||0;
   var cu=b.hugUnit&&S.u[b.hugUnit]&&S.u[b.hugUnit].bid===bid?S.u[b.hugUnit]:null,dep=cu?((+b.hugDep>0)?+b.hugDep:(+cu.deposit||0)):0;
   var list=ulist(bid).map(function(u){if(cu&&u.id===cu.id)return {u:u,amt:0,why:"계약 호실 (아래에서 따로 계산)",me:true};var x=hugPrior(u);return {u:u,amt:x.amt,why:x.why,vac:!!x.vac}}),prior=list.reduce(function(s,o){return s+o.amt},0),debt=M+prior+dep;
   var q=function(a,base){return base>0?a/base:0};
@@ -1080,7 +1085,7 @@ function hugCalc(bid){var b=S.b[bid]||{},sd=hugStd(),P=(+b.hugPrice||0)*(b.hugSr
   /* 다세대: 호실마다 면적 비율로 주택가격·담보를 나눠 계산 (현화리 290-4 시트와 같은 식) */
   var multi=null;if(b.hugMulti){var ru=b.hugRefUnit&&S.u[b.hugRefUnit]?S.u[b.hugRefUnit]:null,ra=ru?(+ru.area||0):0,per=ra>0?(+b.hugRefPrice||0)/ra:0,us=ulist(bid),ta=us.reduce(function(s2,u){return s2+(+u.area||0)},0);
     multi={ru:ru,per:per,ta:ta,rows:us.map(function(u){var a=+u.area||0,pr=a*per,mo=ta>0?M*a/ta:0,dp=(cu&&u.id===cu.id)?dep:(+u.deposit||0),g=dp+mo;return {u:u,a:a,pr:pr,mo:mo,dp:dp,g:g,rl:pr>0?g/pr:0,rt:pr>0?g/(pr*0.9):0}})}}
-  return {P:P,PL:PL,PT:PT,M:M,cu:cu,dep:dep,list:list,prior:prior,debt:debt,L:L,T:T,sd:sd,vac:vac,multi:multi}}
+  return {P:P,src:src,PL:PL,PT:PT,M:M,cu:cu,dep:dep,list:list,prior:prior,debt:debt,L:L,T:T,sd:sd,vac:vac,multi:multi}}
 function hugMultiHtml(bid,c){var m=c.multi;if(!m)return "";var b=S.b[bid],ro=S.canWrite?"":" readonly",dis=S.canWrite?"":" disabled",sd=c.sd;
   var pc=function(x){return (Math.round(x*1000)/10).toFixed(1)+"%"},col=function(v,lim){return '<b class="'+(v<=lim+1e-9?"neg":"pos")+'">'+pc(v)+'</b>'};
   var ro2='<option value="">기준 호실 고르기</option>'+ulist(bid).map(function(u){return '<option value="'+u.id+'"'+(m.ru&&m.ru.id===u.id?" selected":"")+'>'+esc(u.ho)+'</option>'}).join("");
@@ -1094,7 +1099,7 @@ function hugMultiHtml(bid,c){var m=c.multi;if(!m)return "";var b=S.b[bid],ro=S.c
     '</tbody><tfoot><tr><td>합계</td><td class="num">'+(Math.round(T.a*100)/100)+'</td><td class="num">'+won(T.pr)+'</td><td class="num">'+won(T.dp)+'</td><td class="num">'+won(T.mo)+'</td><td class="num">'+won(T.g)+'</td><td class="num">'+(T.pr?pc(T.g/T.pr):'–')+'</td><td class="num">'+(T.pr?pc(T.g/(T.pr*0.9)):'–')+'</td></tr></tfoot></table></div>'+
     '<p class="note">기준 호실의 감정평가금액 ÷ 그 호실 면적으로 1㎡당 금액을 구하고, 호실마다 면적만큼 주택가격과 근저당(담보)을 나눕니다. 계약 호실은 위 계약 보증금으로 계산합니다.</p></div>'}
 /* 감정평가 유효기간: 평가일 + 6개월(임차인 보증용). 임대인이 보증보험을 발급받았으면 평가일 + 2년, 그 뒤 연장 */
-function hugValid(b){if(!b||b.hugSrc==="pub")return null;var d=pd(b.hugDate);if(!d)return null;var lord=!!b.hugLordIssued,end=addMonths(d,lord?24:6),days=Math.round((end-TODAY)/864e5);
+function hugValid(b){if(!b||!(hugAppr(b)>0))return null;var d=pd(b.hugDate);if(!d)return null;var lord=!!b.hugLordIssued,end=addMonths(d,lord?24:6),days=Math.round((end-TODAY)/864e5);
   return {end:end,days:days,lord:lord,ok:days>=0,soon:days>=0&&days<=WARN_DAYS}}
 function hugValidHtml(b){var v=hugValid(b);if(!v)return "";var t=(v.lord?"임대인 보증 발급 · 평가일부터 2년":"평가일부터 6개월")+" → "+fd(v.end);
   return '<div class="hug-val '+(!v.ok?"bad":v.soon?"warn":"ok")+'"><b>'+(!v.ok?"감정평가 유효기간 지남":v.soon?"감정평가 유효기간 곧 끝남 (D-"+v.days+")":"감정평가 유효 (D-"+v.days+")")+'</b> <span>'+t+'</span>'+
@@ -1104,22 +1109,23 @@ function hugCard(bid){var b=S.b[bid],c=hugCalc(bid),sd=c.sd,ro=S.canWrite?"":" r
   var num=function(f,v,ph){return '<input class="inp" inputmode="numeric" data-hug="'+bid+'|'+f+'" value="'+(+v?won(v):"")+'" placeholder="'+(ph||"")+'"'+ro+'>'};
   var std=function(k){return S.canWrite?'<span class="hug-sw"><input class="cell s hug-std" inputmode="decimal" data-hugstd="'+k+'" value="'+Math.round(sd[k]*1000)/10+'" title="모든 건물에 같이 적용">%</span>':Math.round(sd[k]*1000)/10+'%'};
   var cell=function(v,lim){if(lim==null)return '<td class="num muted">'+pc(v)+'</td>';var ok=v<=lim+1e-9;return '<td class="num"><b class="'+(ok?"neg":"pos")+'">'+pc(v)+'</b></td>'};
-  var hv=hugValid(b);var verdict=function(ok,mx,who){if(!c.P)return '<span class="tag etc">주택가액을 넣어 주세요</span>';if(hv&&!hv.ok&&(who==="임차인"||hv.lord))return '<span class="tag bad hug-v">감정평가 유효기간 지남</span><small class="muted"> 계산상 '+(ok?"가능":"불가")+'</small>';return '<span class="tag '+(ok?"paid":"bad")+' hug-v">'+who+' '+(ok?"가능":"불가")+'</span>'+(c.cu?'<small class="muted"> 이 호실 보증금 최대 <b>'+won(mx)+'</b></small>':'')};
+  var hv=hugValid(b);var verdict=function(ok,mx,who){if(!c.P)return '<span class="tag etc">감정평가액이나 공시가격을 넣어 주세요</span>';if(c.src==="appr"&&hv&&!hv.ok&&(who==="임차인"||hv.lord))return '<span class="tag bad hug-v">감정평가 유효기간 지남</span><small class="muted"> 계산상 '+(ok?"가능":"불가")+'</small>';return '<span class="tag '+(ok?"paid":"bad")+' hug-v">'+who+' '+(ok?"가능":"불가")+'</span>'+(c.cu?'<small class="muted"> 이 호실 보증금 최대 <b>'+won(mx)+'</b></small>':'')};
   var uo='<option value="">계약 호실 고르기 (없으면 전체 보증금으로 계산)</option>'+ulist(bid).map(function(u){return '<option value="'+u.id+'"'+(c.cu&&c.cu.id===u.id?" selected":"")+'>'+esc(u.ho)+(u.name?" "+esc(u.name):" (공실)")+'</option>'}).join("");
   var h='<div class="card" id="hug-'+bid+'"><div class="card-h"><h3>허그 보증보험 확인<span class="sub">평택시 · 최근 기준</span></h3></div>'+
     '<div class="hug-in">'+
-     '<div class="kv"><label>주택가액 기준</label><div class="kv-v"><select class="sel" data-hug="'+bid+'|hugSrc"'+dis+'><option value="appr"'+(b.hugSrc!=="pub"?" selected":"")+'>감정평가액</option><option value="pub"'+(b.hugSrc==="pub"?" selected":"")+'>공시가격</option></select></div></div>'+
-     '<div class="kv"><label>'+(b.hugSrc==="pub"?"공시가격":"감정평가액")+'</label><div class="kv-v">'+num("hugPrice",b.hugPrice,"원")+(b.hugSrc==="pub"&&+b.hugPrice?'<small class="muted" style="white-space:nowrap">× 140% = '+won(c.P)+'</small>':'')+'</div></div>'+
-     '<div class="kv"><label>'+(b.hugSrc==="pub"?"기준일":"감정평가일자")+'</label><div class="kv-v"><input class="inp" type="date" data-hug="'+bid+'|hugDate" value="'+esc(b.hugDate||"")+'"'+ro+'></div></div>'+
-     (b.hugSrc!=="pub"?'<div class="kv"><label>임대인 보증</label><div class="kv-v"><label style="display:inline-flex;gap:6px;align-items:center;cursor:pointer;white-space:nowrap"><input type="checkbox" data-huglord="'+bid+'"'+(b.hugLordIssued?" checked":"")+dis+'> 발급받음</label>'+(b.hugLordIssued?'<input class="inp" type="date" data-hug="'+bid+'|hugLordDate" value="'+esc(b.hugLordDate||"")+'" title="발급일"'+ro+'>':'')+'</div></div>':'')+
+     '<div class="kv"><label>감정평가액</label><div class="kv-v">'+num("hugAppr",hugAppr(b),"감정평가 받은 건물만")+'</div></div>'+
+     '<div class="kv"><label>감정평가일자</label><div class="kv-v"><input class="inp" type="date" data-hug="'+bid+'|hugDate" value="'+esc(b.hugDate||"")+'"'+ro+'></div></div>'+
+     '<div class="kv"><label>공시가격</label><div class="kv-v">'+num("hugPub",hugPub(b),"원")+(hugPub(b)?'<small class="muted" style="white-space:nowrap">× 140% = '+won(hugPub(b)*1.4)+'</small>':'')+'</div></div>'+
+     (hugAppr(b)>0?'<div class="kv"><label>임대인 보증</label><div class="kv-v"><label style="display:inline-flex;gap:6px;align-items:center;cursor:pointer;white-space:nowrap"><input type="checkbox" data-huglord="'+bid+'"'+(b.hugLordIssued?" checked":"")+dis+'> 발급받음</label>'+(b.hugLordIssued?'<input class="inp" type="date" data-hug="'+bid+'|hugLordDate" value="'+esc(b.hugLordDate||"")+'" title="발급일"'+ro+'>':'')+'</div></div>':'')+
      '<div class="kv"><label>적용 비율</label><div class="kv-v hug-pct">임대인 <input class="inp" inputmode="decimal" data-hug="'+bid+'|hugLord" value="'+((b.hugLord==null||b.hugLord==="")?100:b.hugLord)+'"'+ro+'>% · 임차인 <input class="inp" inputmode="decimal" data-hug="'+bid+'|hugTen" value="'+((b.hugTen==null||b.hugTen==="")?90:b.hugTen)+'"'+ro+'>%</div></div>'+
      '<div class="kv"><label>근저당권 합계</label><div class="kv-v">'+num("hugMort",b.hugMort,"등기부 채권최고액 합계")+'</div></div>'+
      '<div class="kv"><label>계약 호실</label><div class="kv-v"><select class="sel" data-hug="'+bid+'|hugUnit"'+dis+'>'+uo+'</select></div></div>'+
      (c.cu?'<div class="kv"><label>계약 보증금</label><div class="kv-v">'+num("hugDep",b.hugDep,"비우면 지금 보증금 "+won(c.cu.deposit))+'</div></div>':'')+
      '<div class="kv"><label>다세대</label><div class="kv-v"><label style="display:inline-flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" data-hugmulti="'+bid+'"'+(b.hugMulti?" checked":"")+dis+'> 호실별 면적으로 따로 계산</label></div></div>'+
     '</div>'+
+    '<div class="hug-src">지금 계산 기준: <b>'+(c.src==="appr"?"감정평가액 "+won(c.P):c.src==="pub"?"공시가격 × 140% = "+won(c.P):"금액 없음")+'</b>'+(c.src==="pub"&&hugAppr(b)>0?' <span class="pos">· 감정평가 유효기간이 지나 공시가격으로 계산</span>':'')+'</div>'+
     hugValidHtml(b)+(c.vac.length?'<div class="hug-vac">공실 '+c.vac.length+'곳('+c.vac.map(function(o){return esc(o.u.ho)}).join(", ")+')을 4,800만 원씩 선순위 보증금으로 넣었습니다. 101호 공실은 1,000만 원입니다.</div>':'')+
-    '<div class="scroller"><table class="tbl hug-t"><thead><tr><th class="l">구분</th><th>임대인<br><small>주택가액 '+won(c.PL)+(b.hugSrc==="pub"?' (공시 ×140%)':'')+'</small></th><th>기준</th><th>임차인<br><small>주택가액 '+won(c.PT)+'</small></th><th>기준</th></tr></thead><tbody>'+
+    '<div class="scroller"><table class="tbl hug-t"><thead><tr><th class="l">구분</th><th>임대인<br><small>주택가액 '+won(c.PL)+(c.src==="pub"?' (공시 ×140%)':'')+'</small></th><th>기준</th><th>임차인<br><small>주택가액 '+won(c.PT)+'</small></th><th>기준</th></tr></thead><tbody>'+
      '<tr><td class="l">담보비율<br><small class="muted">근저당 '+won(c.M)+'</small></td>'+cell(c.L.mort,sd.lm)+'<td>'+std("lm")+'</td>'+cell(c.T.mort,sd.tm)+'<td>'+std("tm")+'</td></tr>'+
      '<tr><td class="l">선순위 채권 비율<br><small class="muted">근저당 + 선순위 보증금 '+won(c.M+c.prior)+'</small></td>'+cell(c.L.prior,null)+'<td class="muted">–</td>'+cell(c.T.prior,sd.tp)+'<td>'+std("tp")+'</td></tr>'+
      '<tr><td class="l">사업장 부채비율<br><small class="muted">근저당 + 선순위 + 계약 '+won(c.debt)+'</small></td>'+cell(c.L.debt,sd.ld)+'<td>'+std("ld")+'</td>'+cell(c.T.debt,sd.td)+'<td>'+std("td")+'</td></tr>'+
@@ -1127,7 +1133,7 @@ function hugCard(bid){var b=S.b[bid],c=hugCalc(bid),sd=c.sd,ro=S.canWrite?"":" r
     '<details class="hug-d"><summary>선순위 보증금 합계 <b class="num">'+won(c.prior)+'</b>'+(c.vac.length?' <span class="tag warn">공실 4,800만 가정 '+c.vac.length+'곳</span>':'')+' <span class="muted">· 호실별 보기</span></summary><div class="scroller"><table class="tbl"><thead><tr><th>호수</th><th>임차인</th><th>넣은 금액</th><th class="l">비고</th></tr></thead><tbody>'+
       c.list.map(function(o){return '<tr'+(o.me?' class="cur"':o.vac?' class="hug-vrow"':'')+'><td>'+esc(o.u.ho)+'</td><td>'+(o.u.name?esc(o.u.name):'<span class="muted">공실</span>')+'</td><td class="num">'+(o.me?'–':won(o.amt))+'</td><td class="l muted">'+esc(o.why)+'</td></tr>'}).join("")+
     '</tbody></table></div></details>'+hugMultiHtml(bid,c)+
-    '<p class="note">선순위 보증금은 계약 호실을 뺀 나머지 호실의 지금 보증금으로 자동 계산합니다. 외국인 호실(호실 화면의 <b>외국인</b> 체크)과 101호가 아닌 공실은 '+won(HUG_FRN)+'원, 101호가 공실이면 '+won(HUG_101)+'원을 넣습니다. 공시가격을 고르면 주택가액은 공시가격의 140%로 계산합니다. 기준 %는 모든 건물에 같이 적용됩니다. 실제 심사 결과와 다를 수 있으니 참고용으로 보세요.</p></div>';
+    '<p class="note">선순위 보증금은 계약 호실을 뺀 나머지 호실의 지금 보증금으로 자동 계산합니다. 외국인 호실(호실 화면의 <b>외국인</b> 체크)과 101호가 아닌 공실은 '+won(HUG_FRN)+'원, 101호가 공실이면 '+won(HUG_101)+'원을 넣습니다. 감정평가액이 있으면 감정평가액으로, 없으면 공시가격의 140%로 계산합니다(감정평가 기간이 지났고 공시가격이 있으면 공시가격으로). 기준 %는 모든 건물에 같이 적용됩니다. 실제 심사 결과와 다를 수 있으니 참고용으로 보세요.</p></div>';
   return h}
 
 /* ---------- 지출 (이자 · 공과금 · 종부세 정리) ---------- */
@@ -1192,7 +1198,7 @@ document.addEventListener("change",function(e){var t=e.target,a;
     if(t.checked&&uu&&uu.terminate){pt.terminate=false;pt.termExpiry="";pt.termBase="";pt.termMode="";pt.noticeDate="";pt.termRenewed=false}
     saveUnit(a,pt);toast(t.checked?(uu.ho+" 새 계약으로 표시했습니다"+(pt.terminate===false?" (계약 해지는 풀었습니다)":"")):(uu.ho+" 새 계약 표시를 풀었습니다"));t.blur();render();return}
   if((a=t.getAttribute("data-frn"))){saveUnit(a,{foreign:t.checked});t.blur();render();return}
-  if((a=t.getAttribute("data-hug"))){var q7=a.split("|"),hb=q7[0],hf=q7[1],hv=t.value;if(hf==="hugPrice"||hf==="hugMort"||hf==="hugDep"||hf==="hugRefPrice")hv=toNum(hv);else if(hf==="hugLord"||hf==="hugTen")hv=hv===""?"":toNum(hv);var o7={};o7[hf]=hv;if(hf==="hugUnit")o7.hugDep=0;saveBld(hb,o7);if(t.tagName==="SELECT"){t.blur();render()}else sched();return}
+  if((a=t.getAttribute("data-hug"))){var q7=a.split("|"),hb=q7[0],hf=q7[1],hv=t.value;if(hf==="hugAppr"||hf==="hugPub"||hf==="hugPrice"||hf==="hugMort"||hf==="hugDep"||hf==="hugRefPrice")hv=toNum(hv);else if(hf==="hugLord"||hf==="hugTen")hv=hv===""?"":toNum(hv);var o7={};o7[hf]=hv;if(hf==="hugUnit")o7.hugDep=0;saveBld(hb,o7);if(t.tagName==="SELECT"){t.blur();render()}else sched();return}
   if((a=t.getAttribute("data-huglord"))){saveBld(a,{hugLordIssued:t.checked});t.blur();render();return}
   if((a=t.getAttribute("data-hugmulti"))){saveBld(a,{hugMulti:t.checked});t.blur();render();return}
   if((a=t.getAttribute("data-hugstd"))){var sd7=hugStd();sd7[a]=toNum(t.value)/100;S.hug=sd7;saveHugStd();sched();return}

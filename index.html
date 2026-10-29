@@ -198,6 +198,20 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .tbl tr.cur td{background:var(--accent-soft)}
 .tbl tr.due-late td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 .calc{color:var(--muted)}
+.ab-off{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:4px;border-radius:50%;font-size:11px;font-weight:800;line-height:1;color:var(--muted);background:var(--surface2);border:1px solid var(--line);vertical-align:1px}
+.bcard{max-width:1100px}
+.binfo{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:760px){.binfo{grid-template-columns:1fr}}
+.bphoto{display:flex;flex-direction:column;gap:8px}
+.bphoto img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+.bph-empty{display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;border:1px dashed var(--line);border-radius:12px;color:var(--faint);font-size:13px;background:var(--surface2)}
+.bph-acts{display:flex;gap:6px;flex-wrap:wrap}
+.bfields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));column-gap:20px;border:1px solid var(--line2);border-radius:14px;background:var(--surface2);padding:6px 14px}
+.bfields .kv:nth-child(-n+2){border-top:0}
+.bfields .kv-v .inp{max-width:none}
+.sheet td.photo{padding:4px;vertical-align:middle;text-align:center}
+.sheet td.photo img{display:block;width:100%;object-fit:cover;border-radius:2px}
+.sheet td.photo span{color:#777;font-size:12px}
 .im-list{max-height:52vh;overflow:auto;padding:4px 16px 12px}
 .im-sec{margin:12px 0 4px;font-size:13px;font-weight:800;color:var(--accent-ink)}
 .im-row{display:flex;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line2);font-size:13px}
@@ -404,6 +418,7 @@ function expFrom(exp,t){var d=pd(exp);if(!d)return null;var c=d,n=0;while(c<TODA
 function nextExp(u){if(u.terminate){var d=pd(u.termExpiry||u.expiry);if(!d)return null;return {date:d,days:Math.round((d-TODAY)/864e5),auto:0,term:termOf(u),ended:d<TODAY}}return expFrom(u.expiry,termOf(u))}
 function planTag(u){if(!u.newContract||!u.moveInPlan)return "";var d=pd(u.moveInPlan);if(!d)return "";var n=Math.round((d-TODAY)/864e5);
   return '<span class="tag new">입주예정 '+u.moveInPlan.slice(5).replace("-","/")+' '+(n>0?"D-"+n:n===0?"오늘":"입주 "+(-n)+"일 지남")+'</span>'}
+function abOff(u){return u.name&&u.autoBill===false?'<span class="ab-off" title="자동 청구 꺼짐" aria-label="자동 청구 꺼짐">×</span>':''}
 function nmHtml(u){if(!u.name)return '<span class="tag etc">공실</span>';if(u.newContract)return '<span class="new-name" title="새 계약'+(u.newAt?' · '+esc(u.newAt):'')+'">'+esc(u.name)+'</span>';return u.terminate?'<span class="term-name" title="계약 해지 예정">'+esc(u.name)+'</span>':esc(u.name)}
 function termEndCalc(base,mode,notice){if(mode==="notice"&&notice){var n=addMonths(pd(notice),3);var b0=pd(base);return fd(b0&&b0<n?b0:n)}return base}
 function setTerminate(id,on){var u=S.u[id];if(!u)return;
@@ -535,7 +550,7 @@ document.addEventListener("change",function(e){
 /* ---------- 전체 현황 (Sheet1) ---------- */
 function totals(us){var t={dep:0,rent:0,mgmt:0,un:0,pre:0,occ:0,n:us.length};us.forEach(function(u){t.dep+=+u.deposit||0;t.rent+=+u.rent||0;t.mgmt+=+u.mgmt||0;var x=unpaid(u);if(x>0)t.un+=x;else t.pre+=x;if(u.name)t.occ++});return t}
 function unitRow(u){var ms=monthState(u),x=unpaid(u);
-  return '<tr><td class="l stick"><a class="holink" href="#u-'+u.id+'" title="'+esc(u.ho)+' 호실 화면으로">'+esc(u.ho)+'</a></td><td class="l">'+nmHtml(u)+(planTag(u)?'<br>'+planTag(u):'')+'</td><td class="l num">'+esc(u.phone)+'</td>'+
+  return '<tr><td class="l stick"><a class="holink" href="#u-'+u.id+'" title="'+esc(u.ho)+' 호실 화면으로">'+esc(u.ho)+'</a></td><td class="l">'+nmHtml(u)+abOff(u)+(planTag(u)?'<br>'+planTag(u):'')+'</td><td class="l num">'+esc(u.phone)+'</td>'+
   '<td class="num">'+wonZ(u.deposit)+'</td><td class="num">'+wonZ(u.rent)+'</td><td class="num">'+wonZ(u.mgmt)+'</td><td class="c num">'+(u.payDay?u.payDay+"일":"")+'</td>'+
   '<td class="c num">'+esc(u.moveIn)+'</td><td class="c num">'+expCell(u)+'</td><td class="c">'+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+'</td>'+
   '<td class="num">'+unpaidHtml(u,x)+'</td><td>'+(S.canWrite?'<input class="lim" inputmode="numeric" data-f="unit:'+u.id+':limit" value="'+(+u.limit?won(u.limit):"")+'" placeholder="기준금액" aria-label="'+esc(u.ho)+' 기준금액">':(+u.limit?won(u.limit):""))+'</td><td class="l">'+(S.canWrite?'<input class="memo" data-f="unit:'+u.id+':memo" value="'+esc(u.memo)+'" placeholder="" aria-label="'+esc(u.ho)+' 비고">':esc(u.memo))+'</td>'+
@@ -543,7 +558,7 @@ function unitRow(u){var ms=monthState(u),x=unpaid(u);
 function qpayHtml(u){if(!S.canWrite||!u.name)return "";var t=payTarget(u);
   return '<span class="qpay"><input type="date" class="qd" id="qd-'+u.id+'" value="'+fd(TODAY)+'" aria-label="'+esc(u.ho)+' 입금일"><input class="qa" id="qa-'+u.id+'" data-qa="'+u.id+'" inputmode="numeric" placeholder="입금액" aria-label="'+esc(u.ho)+' 입금액"><button type="button" class="btn sm p" data-act="qpay" data-u="'+u.id+'" title="'+(t?esc(t.due)+" 청구에 기록":"새 청구 줄에 기록")+'">입금</button></span>'}
 function unitCard(u){var ms=monthState(u),x=unpaid(u);
-  return '<div class="ucard"><div class="r1"><a class="holink ho" href="#u-'+u.id+'">'+esc(u.ho)+' ›</a><span class="nm">'+nmHtml(u)+'</span><span class="tags">'+planTag(u)+expPill(u,nextExp(u),"만기 ")+(u.terminate?'':expTag(u))+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+(x>0?'<span class="tag '+(underLimit(u,x)?"etc":"bad")+'">미납 '+won(x)+(monthsOf(u,x)?' · '+monthsOf(u,x):'')+'</span>':'')+'</span></div>'+
+  return '<div class="ucard"><div class="r1"><a class="holink ho" href="#u-'+u.id+'">'+esc(u.ho)+' ›</a><span class="nm">'+nmHtml(u)+abOff(u)+'</span><span class="tags">'+planTag(u)+expPill(u,nextExp(u),"만기 ")+(u.terminate?'':expTag(u))+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+(x>0?'<span class="tag '+(underLimit(u,x)?"etc":"bad")+'">미납 '+won(x)+(monthsOf(u,x)?' · '+monthsOf(u,x):'')+'</span>':'')+'</span></div>'+
   '<div class="r2 num"><span>보증금 <b>'+won(u.deposit)+'</b></span><span>월세 <b>'+won(u.rent)+'</b></span>'+(+u.mgmt?'<span>관리비 <b>'+won(u.mgmt)+'</b></span>':'')+(u.payDay?'<span>차임일 <b>'+u.payDay+'일</b></span>':'')+'</div>'+(S.canWrite&&u.name?'<div class="r3q">'+qpayHtml(u)+'</div>':'')+(S.canWrite?'<input class="memo r3" data-f="unit:'+u.id+':memo" value="'+esc(u.memo)+'" placeholder="비고 입력" aria-label="'+esc(u.ho)+' 비고">':(u.memo?'<div class="r2">'+esc(u.memo)+'</div>':''))+'</div>'}
 function matchQ(u){if(!S.q)return true;var q=S.q.toLowerCase();return [u.ho,u.name,u.phone,u.memo,bname(u.bid)].join(" ").toLowerCase().indexOf(q)>=0}
 function viewHome(){
@@ -592,9 +607,15 @@ function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물�
    '<div class="kpi"><span class="l">월세 + 관리비</span><span class="n num">'+won(t.rent+t.mgmt)+'</span><span class="s num">이자 차감 '+won(t.rent+t.mgmt-li)+'</span></div>'+
    '<div class="kpi'+(t.un>0?" alert":"")+'"><span class="l">미납</span><span class="n num">'+won(t.un)+'</span><span class="s">'+(t.pre?'선납 '+won(-t.pre):'')+'</span></div>'+
    '</div></div></section><div style="height:16px"></div>';
-  h+='<div class="card"><div class="card-h"><h3>건물 정보</h3></div><div class="form">'+
-    fld("건물명","bld:"+id+":name",b.name,"",ro)+fld("소재지","bld:"+id+":addr",b.addr,"",ro)+fld("대지면적","bld:"+id+":land",b.land,"",ro)+fld("건축면적","bld:"+id+":bldg",b.bldg,"",ro)+
-    fld("연면적","bld:"+id+":gfa",b.gfa,"",ro)+fld("주차대수","bld:"+id+":parking",b.parking,"",ro)+fld("세대 현황","bld:"+id+":comp",b.comp,"wide",ro)+fld("메모","bld:"+id+":memo",b.memo,"wide",ro)+'</div></div>';
+  var ph=S.ph[id];if(ph===undefined)loadPhoto(id);
+  h+='<div class="card bcard"><div class="card-h"><h3>건물 정보</h3></div><div class="binfo">'+
+    '<div class="bphoto">'+(ph&&ph.data?'<img src="'+ph.data+'" alt="'+esc(b.name)+' 건물 사진">':'<div class="bph-empty">'+(ph===undefined?'사진 불러오는 중…':'건물 사진이 없습니다')+'</div>')+
+      (S.canWrite?'<div class="bph-acts"><button type="button" class="btn sm" data-act="ph-up" data-b="'+id+'">'+(ph&&ph.data?'사진 바꾸기':'사진 올리기')+'</button>'+(ph&&ph.data?'<button type="button" class="btn sm ghost danger" data-act="ph-del" data-b="'+id+'" data-confirm="사진 삭제?">삭제</button>':'')+'</div>':'')+
+      '<p class="note">매물장 인쇄 때 오른쪽 아래 사진 칸에 들어갑니다.</p></div>'+
+    '<div class="bfields">'+kv("건물명","bld:"+id+":name",b.name,ro)+kv("소재지","bld:"+id+":addr",b.addr,ro)+kv("대지면적","bld:"+id+":land",b.land,ro)+kv("건축면적","bld:"+id+":bldg",b.bldg,ro)+
+      kv("연면적","bld:"+id+":gfa",b.gfa,ro)+kv("주차대수","bld:"+id+":parking",b.parking,ro)+kv("세대 현황","bld:"+id+":comp",b.comp,ro)+
+      '<div class="kv"><label for="f-bld-'+id+'-memo">메모</label><div class="kv-v"><textarea class="inp memo-ta" rows="2" id="f-bld-'+id+'-memo" data-f="bld:'+id+':memo"'+ro+'>'+esc(b.memo||"")+'</textarea></div></div></div>'+
+  '</div></div>';
   if(us.length){
     h+='<div class="card only-wide"><div class="card-h"><h3>호실 현황</h3></div><div class="scroller" data-sk="b"><table class="tbl"><thead><tr><th class="l stick">호수</th><th class="l">임차인</th><th class="l">연락처</th><th>보증금</th><th>월세</th><th>관리비</th><th class="c">차임일</th><th class="c">입주일</th><th class="c">만기일</th><th class="c">최근 청구</th><th>미납 금액</th><th title="미납이 이 금액 이하이면 회색으로 표시">기준금액</th><th class="l">비고</th><th class="l">입금 입력 <span style="font-weight:400">(최근 청구에 기록)</span></th></tr></thead><tbody>'+us.map(unitRow).join("")+'</tbody></table></div></div>';
     h+='<div class="only-narrow">'+us.map(unitCard).join("")+'</div>';
@@ -797,34 +818,48 @@ function runImport(){if(!IM||IM.busy)return;var todo=IM.diffs.filter(function(d)
   todo.reduce(function(pr,d){return pr.then(function(){var ref=S.db.doc(d.col+"/"+d.id);var w=d.k==="del"?ref.delete():ref.set(JSON.parse(JSON.stringify(d.data)));
       return w.then(function(){IM.done++;var s=$("#im .im-foot span");if(s)s.textContent="가져오는 중… "+IM.done+" / "+todo.length})})},Promise.resolve())
   .then(function(){var n=IM.done;IM=null;renderImport();toast(n+"건을 가져왔습니다.")},function(e){IM.busy=false;renderImport();toast("가져오는 중 멈췄습니다 ("+IM.done+"건 완료): "+(e&&e.message||e))})}
+/* ---------- 건물 사진 (작게 줄여 데이터베이스에 저장) ---------- */
+S.ph={};
+function loadPhoto(bid){if(!S.db||S.ph[bid]!==undefined&&S.ph[bid]!=="loading")return Promise.resolve(S.ph[bid]);if(S.ph[bid]==="loading")return Promise.resolve(null);S.ph[bid]="loading";
+  return S.db.doc("photos/"+bid).get().then(function(s){S.ph[bid]=s.exists?s.data():null;sched();return S.ph[bid]},function(){S.ph[bid]=null;sched();return null})}
+function shrinkImage(file){return new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){var img=new Image();img.onload=function(){
+    var tries=[[1280,0.75],[1024,0.7],[800,0.65],[640,0.6]];
+    for(var i=0;i<tries.length;i++){var mx=tries[i][0],sc=Math.min(1,mx/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
+      var cv=document.createElement("canvas");cv.width=w;cv.height=h;var cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,w,h);cx.drawImage(img,0,0,w,h);
+      var d=cv.toDataURL("image/jpeg",tries[i][1]);if(d.length<700000||i===tries.length-1){res({data:d,w:w,h:h});return}}};
+    img.onerror=function(){rej(new Error("사진 파일을 읽지 못했습니다"))};img.src=fr.result};fr.onerror=function(){rej(fr.error)};fr.readAsDataURL(file)})}
+function uploadPhoto(bid){var inp=document.createElement("input");inp.type="file";inp.accept="image/*";inp.hidden=true;document.body.appendChild(inp);
+  inp.onchange=function(){var f=inp.files&&inp.files[0];inp.remove();if(!f)return;toast("사진을 줄이는 중입니다…");
+    shrinkImage(f).then(function(o){o.at=fd(TODAY);S.ph[bid]=o;render();save("photos/"+bid,function(){return S.db.doc("photos/"+bid).set(o).then(function(){toast("건물 사진을 저장했습니다 ("+Math.round(o.data.length*0.75/1024)+"KB)")})})},function(e){toast(e.message||"사진을 올리지 못했습니다")})};
+  inp.click()}
 /* ---------- 인쇄용 매물장 (엑셀 양식) ---------- */
 var PM=null;
 function sheetHtml(bid,kind){var b=S.b[bid];if(!b)return "";var m=S.m[bid]||{price:b.price,loan:b.loan,rate:b.rate,rows:[]};
   var src=kind==="mk"?m:b,rs=kind==="mk"?(m.rows||[]):curRows(bid),c=calc(src.price,src.loan,src.rate,rs);
-  var f1=function(v){return (+v)?man(v):""};
-  var right=[["이율",src.rate?(Math.round(src.rate*1e5)/1e3)+"%":""],["보증금",man(c.dep)],["월세",man(c.rent)],["월 이자",man(Math.round(c.mi*10)/10)],["월 순수익",man(Math.round(c.net*10)/10)],["연 수익률",c.y==null?"-":pct(c.y)]];
-  var n=Math.max(rs.length,right.length+5,14);
+  var f1=function(v){return (+v)?man(v):""},ph=S.ph[bid];
+  var right=[["보증금 합계",man(c.dep)],["월세 합계",man(c.rent)],["월 이자",man(Math.round(c.mi*10)/10)],["월 순수익",man(Math.round(c.net*10)/10)],["연 수익률",c.y==null?"-":pct(c.y)]];
+  var PHOTO_ROWS=7,n=Math.max(rs.length,right.length+PHOTO_ROWS);
   /* 층 칸 합치기: 같은 층(호수 첫 자리)이면 위 칸과 합침 */
   var fl=rs.map(function(r){var f=r.floor||((String(r.ho).match(/^(\d)/)||[])[1]?String(r.ho).match(/^(\d)/)[1]+"층":"");return f}),last="",fillF=[];
   fl.forEach(function(f,i){if(f)last=f;fillF[i]=f||last});
   var span=[];for(var i=0;i<fillF.length;i++){if(i>0&&fillF[i]===fillF[i-1]){span[i]=0}else{var k=1;while(i+k<fillF.length&&fillF[i+k]===fillF[i])k++;span[i]=k}}
   var h='<div class="sheet" id="sheet"><h2>'+(kind==="mk"?"매 물 장 시 세":"매 물 장")+'</h2><p class="unit">(단위:만원)</p><table>'+
    '<colgroup><col style="width:12%"><col style="width:10%"><col style="width:13%"><col style="width:10%"><col style="width:12%"><col style="width:10%"><col style="width:14%"><col style="width:19%"></colgroup>'+
-   '<tr><th>소재지</th><td class="l" colspan="4">'+esc(b.addr||b.name)+'</td><td></td><th>매매가</th><td class="n">'+f1(src.price)+'</td></tr>'+
-   '<tr><th>대지면적</th><td colspan="2">'+esc(b.land||"")+'</td><th>건축면적</th><td colspan="2">'+esc(b.bldg||"")+'</td><td></td><td></td></tr>'+
-   '<tr><th>연면적</th><td colspan="2">'+esc(b.gfa||"")+'</td><th>주차대수</th><td colspan="2">'+esc(b.parking||"")+'</td><th>실 투자금</th><td class="n">'+man(c.inv)+'</td></tr>'+
-   '<tr><th>세대 현황</th><td class="l wrapc" colspan="5">'+esc(b.comp||"")+'</td><td></td><td></td></tr>'+
-   '<tr><th>층수</th><th>호수</th><th>보증금</th><th>월세</th><th>방 수</th><th>'+(kind==="mk"?"메모":"공실")+'</th><th>융자</th><td class="n">'+f1(src.loan)+'</td></tr>';
+   '<tr><th>소재지</th><td class="l" colspan="5">'+esc(b.addr||b.name)+'</td><th>매매가</th><td class="n">'+f1(src.price)+'</td></tr>'+
+   '<tr><th>대지면적</th><td colspan="2">'+esc(b.land||"")+'</td><th>건축면적</th><td colspan="2">'+esc(b.bldg||"")+'</td><th>융자</th><td class="n">'+f1(src.loan)+'</td></tr>'+
+   '<tr><th>연면적</th><td colspan="2">'+esc(b.gfa||"")+'</td><th>주차대수</th><td colspan="2">'+esc(b.parking||"")+'</td><th>이율</th><td class="n">'+(src.rate?(Math.round(src.rate*1e5)/1e3)+"%":"")+'</td></tr>'+
+   '<tr><th>세대 현황</th><td class="l wrapc" colspan="5">'+esc(b.comp||"")+'</td><th>실 투자금</th><td class="n">'+man(c.inv)+'</td></tr>'+
+   '<tr><th>층수</th><th>호수</th><th>보증금</th><th>월세</th><th>방 수</th><th>'+(kind==="mk"?"메모":"공실")+'</th><th colspan="2">수익 분석</th></tr>';
   for(var j=0;j<n;j++){var r=rs[j];
     h+='<tr>'+(r?(span[j]?'<td'+(span[j]>1?' rowspan="'+span[j]+'"':'')+'>'+esc(fillF[j])+'</td>':''):'<td></td>')+
      (r?'<td>'+esc(r.ho)+'</td><td class="n">'+f1(r.dep)+'</td><td class="n">'+f1(r.rent)+'</td><td>'+esc(r.type||"")+'</td><td>'+esc(r.note||"")+'</td>':'<td></td><td></td><td></td><td></td><td></td>');
     if(j<right.length)h+='<th>'+right[j][0]+'</th><td class="n">'+esc(right[j][1])+'</td>';
-    else if(j===right.length)h+='<td class="photo" colspan="2" rowspan="'+(n-right.length)+'">건물 사진</td>';
+    else if(j===right.length)h+='<td class="photo" colspan="2" rowspan="'+(n-right.length+1)+'">'+(ph&&ph.data?'<img src="'+ph.data+'" alt="" style="height:'+((n-right.length+1)*31-10)+'px">':'<span>건물 사진</span>')+'</td>';
     h+='</tr>'}
-  h+='<tr class="sum"><th colspan="2">합계</th><td class="n">'+man(c.dep)+'</td><td class="n">'+man(c.rent)+'</td><td></td><td></td><td></td><td></td></tr></table>';
+  h+='<tr class="sum"><th colspan="2">합계</th><td class="n">'+man(c.dep)+'</td><td class="n">'+man(c.rent)+'</td><td colspan="2"></td></tr></table>';
   var foot=(kind==="mk"?m.footer:b.footer)||"";if(foot)h+='<p class="foot">'+esc(foot)+'</p>';
   return h+'</div>'}
-function openPrint(bid,kind){PM={bid:bid,kind:kind};renderPrint()}
+function openPrint(bid,kind){PM={bid:bid,kind:kind};renderPrint();if(S.ph[bid]===undefined)loadPhoto(bid).then(function(){if(PM)renderPrint()})}
 function renderPrint(){var old=$("#pm");if(old)old.remove();if(!PM)return;var b=S.b[PM.bid];if(!b)return;var m=S.m[PM.bid]||{};
   var foot=(PM.kind==="mk"?m.footer:b.footer)||"";
   var d=document.createElement("div");d.id="pm";d.className="pm-bg";d.setAttribute("role","dialog");d.setAttribute("aria-label","인쇄용 매물장");
@@ -848,14 +883,14 @@ function exportSheet(fmt){var b=S.b[PM.bid],name=b.name+" "+(PM.kind==="mk"?"매
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&PM){PM=null;renderPrint()}});
 /* ---------- 이자계산 ---------- */
 function viewLoans(){var ro=S.canWrite?"":" readonly";var all=ulist(),t=totals(all),tot=0,amt=0;
-  var bo=function(sel){return blist().map(function(b){return '<option value="'+b.id+'"'+(b.id===sel?" selected":"")+'>'+esc(b.name)+'</option>'}).join("")};
-  var h='<section class="hero"><div class="hero-body"><p class="eyebrow">LOAN · 이자계산</p><h1>이자계산</h1><p class="lead">건물별 융자와 이율을 적으면 한 달 이자가 계산되고, 전체 현황의 월세 − 이자에 반영됩니다.</p>'+(S.canWrite?'<div class="hero-acts"><button type="button" class="btn p" data-act="loan-add">+ 융자 추가</button></div>':'')+'</div></section><div style="height:16px"></div>';
-  h+='<div class="card"><div class="scroller"><table class="tbl edit"><thead><tr><th class="l">건물</th><th class="l">구분</th><th>융자 (원)</th><th>이율 (%)</th><th>한 달 이자</th><th></th></tr></thead><tbody>'+
+  var bo=function(sel){return blist().map(function(b){return '<option value="'+b.id+'"'+(b.id===sel?" selected":"")+'>'+esc(b.name)+'</option>'}).join("")+'<option value="etc"'+(sel==="etc"?" selected":"")+'>기타 대출 (건물 무관)</option>'};
+  var h='<section class="hero"><div class="hero-body"><p class="eyebrow">LOAN · 이자계산</p><h1>이자계산</h1><p class="lead">건물별 융자와 그 밖의 대출(신용대출·사업자대출 등)을 적으면 한 달 이자가 계산되고, 전체 현황의 월세 − 이자에 반영됩니다. 건물과 상관없는 대출은 건물 칸에서 <b>기타 대출</b>을 고르세요.</p>'+(S.canWrite?'<div class="hero-acts"><button type="button" class="btn p" data-act="loan-add">+ 건물 융자 추가</button><button type="button" class="btn" data-act="loan-add-etc">+ 기타 대출 추가</button></div>':'')+'</div></section><div style="height:16px"></div>';
+  h+='<div class="card"><div class="scroller"><table class="tbl edit"><thead><tr><th class="l">건물</th><th class="l">구분</th><th class="l">은행·기관</th><th>대출금 (원)</th><th>이율 (%)</th><th>한 달 이자</th><th></th></tr></thead><tbody>'+
    S.loans.map(function(l,i){var mi=(+l.amount||0)*(+l.rate||0)/12;tot+=mi;amt+=+l.amount||0;
-    return '<tr><td><select class="cell l w" data-ln="'+i+'|bid"'+(S.canWrite?"":" disabled")+'>'+bo(l.bid)+'</select></td><td><input class="cell l" data-ln="'+i+'|label" value="'+esc(l.label)+'" placeholder="예: 주담대"'+ro+'></td>'+
+    return '<tr><td><select class="cell l w" data-ln="'+i+'|bid"'+(S.canWrite?"":" disabled")+'>'+bo(l.bid)+'</select></td><td><input class="cell l" data-ln="'+i+'|label" value="'+esc(l.label)+'" placeholder="예: 주담대, 신용대출"'+ro+'></td><td><input class="cell l" data-ln="'+i+'|bank" value="'+esc(l.bank||"")+'" placeholder="예: 농협"'+ro+'></td>'+
      '<td><input class="cell w" inputmode="numeric" data-ln="'+i+'|amount" value="'+(+l.amount?won(l.amount):"")+'"'+ro+'></td><td><input class="cell" inputmode="decimal" data-ln="'+i+'|rate" value="'+(l.rate?Math.round(l.rate*1e5)/1e3:"")+'"'+ro+'></td>'+
      '<td class="num"><b>'+won(mi)+'</b></td><td>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="loan-del" data-i="'+i+'" data-confirm="삭제?" aria-label="삭제">✕</button>':'')+'</td></tr>'}).join("")+
-   '</tbody><tfoot><tr><td class="l" colspan="2">합계</td><td class="num">'+won(amt)+'</td><td></td><td class="num">'+won(tot)+'</td><td></td></tr></tfoot></table></div>'+
+   '</tbody><tfoot><tr><td class="l" colspan="3">합계</td><td class="num">'+won(amt)+'</td><td></td><td class="num">'+won(tot)+'</td><td></td></tr></tfoot></table></div>'+
    '<div class="yield"><div class="sbox"><span class="l">월세 + 관리비</span><span class="n num">'+won(t.rent+t.mgmt)+'</span></div><div class="sbox"><span class="l">한 달 이자</span><span class="n num">'+won(tot)+'</span></div><div class="sbox'+(t.rent+t.mgmt-tot<0?" bad":" good")+'"><span class="l">월세 − 이자</span><span class="n num">'+won(t.rent+t.mgmt-tot)+'</span></div><div class="sbox"><span class="l">융자 + 보증금</span><span class="n num">'+won(amt+t.dep)+'</span></div></div></div>';
   return h}
 
@@ -948,6 +983,8 @@ document.addEventListener("click",function(e){
   else if(act==="imp-open"){openImport()}
   else if(act==="imp-close"){if(!(IM&&IM.busy)){IM=null;renderImport()}}
   else if(act==="imp-go"){runImport()}
+  else if(act==="ph-up"){uploadPhoto(bid)}
+  else if(act==="ph-del"){S.ph[bid]=null;save("photos/"+bid,function(){return S.db.doc("photos/"+bid).delete()});render();toast("건물 사진을 지웠습니다.")}
   else if(act==="print"){openPrint(bid,el.getAttribute("data-k"))}
   else if(act==="pm-close"){PM=null;renderPrint()}
   else if(act==="pm-kind"){PM.kind=PM.kind==="mk"?"cur":"mk";renderPrint()}
@@ -967,7 +1004,8 @@ document.addEventListener("click",function(e){
   else if(act==="mk-add"){ensureMk(bid);S.m[bid].rows.push({floor:"",ho:"",dep:0,rent:0,type:"",note:""});saveMarket(bid);render()}
   else if(act==="mk-del"){ensureMk(bid);S.m[bid].rows.splice(i,1);saveMarket(bid);render()}
   else if(act==="mk-copy"){ensureMk(bid);var b=S.b[bid];S.m[bid].rows=curRows(bid).map(function(r){return {floor:r.floor,ho:r.ho,dep:r.dep,rent:r.rent,type:r.type,note:""}});S.m[bid].price=b.price;S.m[bid].loan=b.loan;S.m[bid].rate=b.rate;saveMarket(bid);render();toast("현재 매물장을 시세표로 복사했습니다.")}
-  else if(act==="loan-add"){S.loans=S.loans.concat([{bid:firstBid(),label:"",amount:0,rate:0}]);saveLoans();render()}
+  else if(act==="loan-add"){S.loans=S.loans.concat([{bid:firstBid(),label:"",bank:"",amount:0,rate:0}]);saveLoans();render()}
+  else if(act==="loan-add-etc"){S.loans=S.loans.concat([{bid:"etc",label:"",bank:"",amount:0,rate:0}]);saveLoans();render()}
   else if(act==="loan-del"){S.loans=S.loans.slice();S.loans.splice(i,1);saveLoans();render()}
 });
 

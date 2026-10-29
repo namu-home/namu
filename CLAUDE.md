@@ -22,7 +22,8 @@
 - `units/{uid}`: 호실 (bid, ho, order, name, phone, deposit, rent, mgmt, payDay, moveIn, expiry, term, carry, limit, memo, type, autoBill, terminate·termExpiry·termBase·termMode·noticeDate·termRenewed, implied·prevExpiry·origExpiry, newContract·newAt·moveInPlan)
 - `ledgers/{uid}`: `{rows:[{due, rent, mgmt, rDate, rType, rAmt, mDate, mType, mAmt, note, sub?}]}` — 입금은 rDate/rAmt 한 칸에 적음(mDate/mAmt는 옛 자료 호환용), `sub:true` = 위 청구에 딸린 추가 입금 줄
 - `market/{bid}`: 매물장 시세 (price, loan, rate, rows:[{floor, ho, dep, rent, type, note}], footer) — 단위 만원
-- `meta/loans`: `{rows:[{bid, label, amount, rate}]}` 이자계산 · `meta/autobill`: 자동 청구 잠금
+- `meta/loans`: `{rows:[{bid, label, bank, amount, rate}]}` 이자계산 (`bid:"etc"` = 건물과 상관없는 기타 대출) · `meta/autobill`: 자동 청구 잠금
+- `photos/{bid}`: 건물 사진 `{data: JPEG data URI, w, h, at}` — 화면에서 최대 1280px로 줄여 약 700KB 이하로 저장. Firebase Storage는 결제 요금제가 필요해서 쓰지 않음
 - `access/{email}`: `{role: "edit" | "view", at}` 승인 목록 (관리자만 쓰기)
 
 주요 계산: 미납 = 월세+관리비−입금(청구일이 지난 줄만, sub 줄은 입금만 뺌). 만기는 계약기간(입주일~만기일)만큼 묵시적갱신. 자동 청구는 차임일 당일, 마지막 청구 후 92일 넘으면 멈춤.

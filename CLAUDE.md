@@ -18,7 +18,7 @@
 
 ## 데이터 구조 (Firestore 컬렉션)
 
-- `buildings/{bid}`: 건물 (name, addr, order, price·loan(만원), rate, land, bldg, gfa, parking, comp, memo, footer)
+- `buildings/{bid}`: 건물 (name, addr, order, price·loan(만원), rate, land, bldg, gfa, parking, approved(사용승인일), usage(건축물 용도), zone(용도지역), structure(구조), floors(층수), comp, memo, footer)
 - `units/{uid}`: 호실 (bid, ho, order, name, phone, deposit, rent, mgmt, payDay, moveIn, expiry, term, carry, limit, memo, type, autoBill, terminate·termExpiry·termBase·termMode·noticeDate·termRenewed, implied·prevExpiry·origExpiry, newContract·newAt·moveInPlan)
 - `ledgers/{uid}`: `{rows:[{due, rent, mgmt, rDate, rType, rAmt, mDate, mType, mAmt, note, sub?}]}` — 입금은 rDate/rAmt 한 칸에 적음(mDate/mAmt는 옛 자료 호환용), `sub:true` = 위 청구에 딸린 추가 입금 줄
 - `market/{bid}`: 매물장 시세 (price, loan, rate, rows:[{floor, ho, dep, rent, type, note}], footer) — 단위 만원

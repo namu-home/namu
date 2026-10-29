@@ -198,19 +198,21 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .tbl tr.cur td{background:var(--accent-soft)}
 .tbl tr.due-late td:first-child{box-shadow:inset 3px 0 0 var(--bad)}
 .calc{color:var(--muted)}
-.ab-off{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:4px;border-radius:50%;font-size:11px;font-weight:800;line-height:1;color:var(--muted);background:var(--surface2);border:1px solid var(--line);vertical-align:1px}
+.nmwrap{position:relative;display:inline-block}
+.ab-off{position:absolute;left:100%;top:50%;transform:translateY(-50%);margin-left:5px;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:4px;font-size:11px;font-weight:800;line-height:1;color:var(--term-fg);background:var(--term-bg)}
 .bcard{max-width:1100px}
 .binfo{display:grid;grid-template-columns:minmax(0,300px) minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:760px){.binfo{grid-template-columns:1fr}}
 .bphoto{display:flex;flex-direction:column;gap:8px}
-.bphoto img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:12px;border:1px solid var(--line)}
+.bphoto img{display:block;width:100%;height:auto;max-height:420px;object-fit:contain;border-radius:12px;border:1px solid var(--line);background:var(--surface2)}
 .bph-empty{display:flex;align-items:center;justify-content:center;aspect-ratio:4/3;border:1px dashed var(--line);border-radius:12px;color:var(--faint);font-size:13px;background:var(--surface2)}
 .bph-acts{display:flex;gap:6px;flex-wrap:wrap}
 .bfields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));column-gap:20px;border:1px solid var(--line2);border-radius:14px;background:var(--surface2);padding:6px 14px}
 .bfields .kv:nth-child(-n+2){border-top:0}
 .bfields .kv-v .inp{max-width:none}
+.sheet th.tight{font-size:11.5px;letter-spacing:-.3px;padding:5px 2px}
 .sheet td.photo{padding:4px;vertical-align:middle;text-align:center}
-.sheet td.photo img{display:block;width:100%;object-fit:cover;border-radius:2px}
+.sheet td.photo img{display:block;width:100%;object-fit:contain;border-radius:2px}
 .sheet td.photo span{color:#777;font-size:12px}
 .im-list{max-height:52vh;overflow:auto;padding:4px 16px 12px}
 .im-sec{margin:12px 0 4px;font-size:13px;font-weight:800;color:var(--accent-ink)}
@@ -550,7 +552,7 @@ document.addEventListener("change",function(e){
 /* ---------- 전체 현황 (Sheet1) ---------- */
 function totals(us){var t={dep:0,rent:0,mgmt:0,un:0,pre:0,occ:0,n:us.length};us.forEach(function(u){t.dep+=+u.deposit||0;t.rent+=+u.rent||0;t.mgmt+=+u.mgmt||0;var x=unpaid(u);if(x>0)t.un+=x;else t.pre+=x;if(u.name)t.occ++});return t}
 function unitRow(u){var ms=monthState(u),x=unpaid(u);
-  return '<tr><td class="l stick"><a class="holink" href="#u-'+u.id+'" title="'+esc(u.ho)+' 호실 화면으로">'+esc(u.ho)+'</a></td><td class="l">'+nmHtml(u)+abOff(u)+(planTag(u)?'<br>'+planTag(u):'')+'</td><td class="l num">'+esc(u.phone)+'</td>'+
+  return '<tr><td class="l stick"><a class="holink" href="#u-'+u.id+'" title="'+esc(u.ho)+' 호실 화면으로">'+esc(u.ho)+'</a></td><td class="l">'+(abOff(u)?'<span class="nmwrap">'+nmHtml(u)+abOff(u)+'</span>':nmHtml(u))+(planTag(u)?'<br>'+planTag(u):'')+'</td><td class="l num">'+esc(u.phone)+'</td>'+
   '<td class="num">'+wonZ(u.deposit)+'</td><td class="num">'+wonZ(u.rent)+'</td><td class="num">'+wonZ(u.mgmt)+'</td><td class="c num">'+(u.payDay?u.payDay+"일":"")+'</td>'+
   '<td class="c num">'+esc(u.moveIn)+'</td><td class="c num">'+expCell(u)+'</td><td class="c">'+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+'</td>'+
   '<td class="num">'+unpaidHtml(u,x)+'</td><td>'+(S.canWrite?'<input class="lim" inputmode="numeric" data-f="unit:'+u.id+':limit" value="'+(+u.limit?won(u.limit):"")+'" placeholder="기준금액" aria-label="'+esc(u.ho)+' 기준금액">':(+u.limit?won(u.limit):""))+'</td><td class="l">'+(S.canWrite?'<input class="memo" data-f="unit:'+u.id+':memo" value="'+esc(u.memo)+'" placeholder="" aria-label="'+esc(u.ho)+' 비고">':esc(u.memo))+'</td>'+
@@ -558,7 +560,7 @@ function unitRow(u){var ms=monthState(u),x=unpaid(u);
 function qpayHtml(u){if(!S.canWrite||!u.name)return "";var t=payTarget(u);
   return '<span class="qpay"><input type="date" class="qd" id="qd-'+u.id+'" value="'+fd(TODAY)+'" aria-label="'+esc(u.ho)+' 입금일"><input class="qa" id="qa-'+u.id+'" data-qa="'+u.id+'" inputmode="numeric" placeholder="입금액" aria-label="'+esc(u.ho)+' 입금액"><button type="button" class="btn sm p" data-act="qpay" data-u="'+u.id+'" title="'+(t?esc(t.due)+" 청구에 기록":"새 청구 줄에 기록")+'">입금</button></span>'}
 function unitCard(u){var ms=monthState(u),x=unpaid(u);
-  return '<div class="ucard"><div class="r1"><a class="holink ho" href="#u-'+u.id+'">'+esc(u.ho)+' ›</a><span class="nm">'+nmHtml(u)+abOff(u)+'</span><span class="tags">'+planTag(u)+expPill(u,nextExp(u),"만기 ")+(u.terminate?'':expTag(u))+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+(x>0?'<span class="tag '+(underLimit(u,x)?"etc":"bad")+'">미납 '+won(x)+(monthsOf(u,x)?' · '+monthsOf(u,x):'')+'</span>':'')+'</span></div>'+
+  return '<div class="ucard"><div class="r1"><a class="holink ho" href="#u-'+u.id+'">'+esc(u.ho)+' ›</a><span class="nm">'+(abOff(u)?'<span class="nmwrap">'+nmHtml(u)+abOff(u)+'</span>':nmHtml(u))+'</span><span class="tags">'+planTag(u)+expPill(u,nextExp(u),"만기 ")+(u.terminate?'':expTag(u))+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+(x>0?'<span class="tag '+(underLimit(u,x)?"etc":"bad")+'">미납 '+won(x)+(monthsOf(u,x)?' · '+monthsOf(u,x):'')+'</span>':'')+'</span></div>'+
   '<div class="r2 num"><span>보증금 <b>'+won(u.deposit)+'</b></span><span>월세 <b>'+won(u.rent)+'</b></span>'+(+u.mgmt?'<span>관리비 <b>'+won(u.mgmt)+'</b></span>':'')+(u.payDay?'<span>차임일 <b>'+u.payDay+'일</b></span>':'')+'</div>'+(S.canWrite&&u.name?'<div class="r3q">'+qpayHtml(u)+'</div>':'')+(S.canWrite?'<input class="memo r3" data-f="unit:'+u.id+':memo" value="'+esc(u.memo)+'" placeholder="비고 입력" aria-label="'+esc(u.ho)+' 비고">':(u.memo?'<div class="r2">'+esc(u.memo)+'</div>':''))+'</div>'}
 function matchQ(u){if(!S.q)return true;var q=S.q.toLowerCase();return [u.ho,u.name,u.phone,u.memo,bname(u.bid)].join(" ").toLowerCase().indexOf(q)>=0}
 function viewHome(){
@@ -613,7 +615,8 @@ function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물�
       (S.canWrite?'<div class="bph-acts"><button type="button" class="btn sm" data-act="ph-up" data-b="'+id+'">'+(ph&&ph.data?'사진 바꾸기':'사진 올리기')+'</button>'+(ph&&ph.data?'<button type="button" class="btn sm ghost danger" data-act="ph-del" data-b="'+id+'" data-confirm="사진 삭제?">삭제</button>':'')+'</div>':'')+
       '<p class="note">매물장 인쇄 때 오른쪽 아래 사진 칸에 들어갑니다.</p></div>'+
     '<div class="bfields">'+kv("건물명","bld:"+id+":name",b.name,ro)+kv("소재지","bld:"+id+":addr",b.addr,ro)+kv("대지면적","bld:"+id+":land",b.land,ro)+kv("건축면적","bld:"+id+":bldg",b.bldg,ro)+
-      kv("연면적","bld:"+id+":gfa",b.gfa,ro)+kv("주차대수","bld:"+id+":parking",b.parking,ro)+kv("세대 현황","bld:"+id+":comp",b.comp,ro)+
+      kv("연면적","bld:"+id+":gfa",b.gfa,ro)+kv("주차대수","bld:"+id+":parking",b.parking,ro)+kv("사용승인일","bld:"+id+":approved",b.approved,ro,0,"","date")+kv("건축물 용도","bld:"+id+":usage",b.usage,ro)+
+      kv("용도지역","bld:"+id+":zone",b.zone,ro)+kv("구조","bld:"+id+":structure",b.structure,ro)+kv("층수","bld:"+id+":floors",b.floors,ro)+kv("세대 현황","bld:"+id+":comp",b.comp,ro)+
       '<div class="kv"><label for="f-bld-'+id+'-memo">메모</label><div class="kv-v"><textarea class="inp memo-ta" rows="2" id="f-bld-'+id+'-memo" data-f="bld:'+id+':memo"'+ro+'>'+esc(b.memo||"")+'</textarea></div></div></div>'+
   '</div></div>';
   if(us.length){
@@ -838,7 +841,8 @@ function sheetHtml(bid,kind){var b=S.b[bid];if(!b)return "";var m=S.m[bid]||{pri
   var src=kind==="mk"?m:b,rs=kind==="mk"?(m.rows||[]):curRows(bid),c=calc(src.price,src.loan,src.rate,rs);
   var f1=function(v){return (+v)?man(v):""},ph=S.ph[bid];
   var right=[["보증금 합계",man(c.dep)],["월세 합계",man(c.rent)],["월 이자",man(Math.round(c.mi*10)/10)],["월 순수익",man(Math.round(c.net*10)/10)],["연 수익률",c.y==null?"-":pct(c.y)]];
-  var PHOTO_ROWS=7,n=Math.max(rs.length,right.length+PHOTO_ROWS);
+  /* 사진 칸 높이 = 사진 비율대로 (칸 너비 약 236px, 한 줄 31px) */
+  var PHOTO_ROWS=ph&&ph.data&&ph.w&&ph.h?Math.max(3,Math.min(10,Math.ceil((228*ph.h/ph.w+10)/31))):6,n=Math.max(rs.length,right.length+PHOTO_ROWS-1);
   /* 층 칸 합치기: 같은 층(호수 첫 자리)이면 위 칸과 합침 */
   var fl=rs.map(function(r){var f=r.floor||((String(r.ho).match(/^(\d)/)||[])[1]?String(r.ho).match(/^(\d)/)[1]+"층":"");return f}),last="",fillF=[];
   fl.forEach(function(f,i){if(f)last=f;fillF[i]=f||last});
@@ -848,7 +852,9 @@ function sheetHtml(bid,kind){var b=S.b[bid];if(!b)return "";var m=S.m[bid]||{pri
    '<tr><th>소재지</th><td class="l" colspan="5">'+esc(b.addr||b.name)+'</td><th>매매가</th><td class="n">'+f1(src.price)+'</td></tr>'+
    '<tr><th>대지면적</th><td colspan="2">'+esc(b.land||"")+'</td><th>건축면적</th><td colspan="2">'+esc(b.bldg||"")+'</td><th>융자</th><td class="n">'+f1(src.loan)+'</td></tr>'+
    '<tr><th>연면적</th><td colspan="2">'+esc(b.gfa||"")+'</td><th>주차대수</th><td colspan="2">'+esc(b.parking||"")+'</td><th>이율</th><td class="n">'+(src.rate?(Math.round(src.rate*1e5)/1e3)+"%":"")+'</td></tr>'+
-   '<tr><th>세대 현황</th><td class="l wrapc" colspan="5">'+esc(b.comp||"")+'</td><th>실 투자금</th><td class="n">'+man(c.inv)+'</td></tr>'+
+   '<tr><th>사용승인일</th><td colspan="2">'+esc(b.approved||"")+'</td><th class="tight">건축물 용도</th><td colspan="2">'+esc(b.usage||"")+'</td><th>실 투자금</th><td class="n">'+man(c.inv)+'</td></tr>'+
+   '<tr><th>용도지역</th><td colspan="2">'+esc(b.zone||"")+'</td><th>구조</th><td colspan="2">'+esc(b.structure||"")+'</td><th>층수</th><td>'+esc(b.floors||"")+'</td></tr>'+
+   '<tr><th>세대 현황</th><td class="l wrapc" colspan="7">'+esc(b.comp||"")+'</td></tr>'+
    '<tr><th>층수</th><th>호수</th><th>보증금</th><th>월세</th><th>방 수</th><th>'+(kind==="mk"?"메모":"공실")+'</th><th colspan="2">수익 분석</th></tr>';
   for(var j=0;j<n;j++){var r=rs[j];
     h+='<tr>'+(r?(span[j]?'<td'+(span[j]>1?' rowspan="'+span[j]+'"':'')+'>'+esc(fillF[j])+'</td>':''):'<td></td>')+

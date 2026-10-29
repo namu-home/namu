@@ -274,7 +274,7 @@ label.chk{flex-direction:row;gap:12px;align-items:flex-start}
 .exp-pill{display:inline-block;border-radius:6px;padding:1px 9px;font-weight:700;font-variant-numeric:tabular-nums}
 .exp-pill.renew{background:var(--renew-bg);color:var(--renew-fg)}
 .exp-pill.term{background:var(--term-bg);color:var(--term-fg)}
-.legend{display:inline-flex;gap:10px;align-items:center;font-size:12px;color:var(--muted)}
+.legend{display:inline-flex;flex-wrap:wrap;gap:4px 10px;align-items:center;font-size:12px;color:var(--muted)}.legend>span{white-space:nowrap}
 .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px}
 .term-sel{color:var(--bad);font-weight:700;border-color:var(--bad)}
 .qpay{display:inline-flex;gap:4px;align-items:center}
@@ -372,7 +372,10 @@ input[type=date]::-webkit-datetime-edit{display:inline-flex;justify-content:cent
 .adm-sec h4{margin:0 0 6px;font-size:14px;color:var(--accent-ink)}
 .adm-add{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.adm-add .inp{flex:1 1 220px;height:34px;text-align:left!important}
 .adm-btns{display:flex;flex-wrap:wrap;gap:8px}
-.tbl .cell.memo-c{min-width:160px}.plus-btn{margin-left:auto;font-size:17px;font-weight:800;line-height:1;min-width:34px;color:var(--accent);border-style:dashed}.uhead{margin:4px 2px 8px}a.kpi{text-decoration:none}.tbl tr.newgrp td{background:var(--new-soft)}.tbl .cell.s{min-width:64px;width:64px}.tbl.loans td small{font-size:11px;font-weight:400}.tbl.loans select.cell{min-width:118px}.tbl.loans select.cell.w{min-width:150px}.tbl td a,.tbl tr.grp .gname a{color:var(--accent-ink);text-decoration:none;font-weight:700}
+.tbl .cell.memo-c{min-width:160px}.plus-btn{margin-left:auto;font-size:17px;font-weight:800;line-height:1;min-width:34px;color:var(--accent);border-style:dashed}.uhead{margin:4px 2px 8px}
+.hsum{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px 16px;margin:2px 0 4px}.hsum h1{margin:0;font-size:24px;letter-spacing:-.04em}.hsum h1 small{font-size:13px;font-weight:600;color:var(--muted);margin-left:8px;letter-spacing:0}
+.hsum-l{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;font-size:13px;color:var(--muted)}.hsum-l b{color:var(--fg)}.hsum-f{font-weight:700;color:var(--accent-ink)}
+.hsum-un{border:0;background:none;padding:0;font:inherit;color:var(--muted);cursor:pointer}.hsum-un.pos b{color:var(--bad)}.hsum-un:hover{text-decoration:underline}a.kpi{text-decoration:none}.tbl tr.newgrp td{background:var(--new-soft)}.tbl .cell.s{min-width:64px;width:64px}.tbl.loans td small{font-size:11px;font-weight:400}.tbl.loans select.cell{min-width:118px}.tbl.loans select.cell.w{min-width:150px}.tbl td a,.tbl tr.grp .gname a{color:var(--accent-ink);text-decoration:none;font-weight:700}
 /* 오늘의 요약 */
 .sum-head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:4px 0 14px}
 .sum-head h2{margin:2px 0 0;font-size:22px;letter-spacing:-.04em}
@@ -655,19 +658,11 @@ function unitCard(u){var ms=monthState(u),x=unpaid(u);
   return '<div class="ucard"><div class="r1"><a class="holink ho" href="#u-'+u.id+'">'+esc(u.ho)+' ›</a><span class="nm">'+(abOff(u)?'<span class="nmwrap">'+nmHtml(u)+abOff(u)+'</span>':nmHtml(u))+'</span><span class="tags">'+planTag(u)+expPill(u,nextExp(u),"만기 ")+(u.terminate?'':expTag(u))+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+(x>0?'<span class="tag '+(underLimit(u,x)?"etc":"bad")+'">미납 '+won(x)+(monthsOf(u,x)?' · '+monthsOf(u,x):'')+'</span>':'')+'</span></div>'+
   '<div class="r2 num"><span>보증금 <b>'+won(u.deposit)+'</b></span><span>월세+관리비 <b>'+won((+u.rent||0)+(+u.mgmt||0))+'</b></span>'+(u.payDay?'<span>차임일 <b>'+u.payDay+'일</b></span>':'')+'</div>'+(S.canWrite&&u.name?'<div class="r3q">'+qpayHtml(u)+'</div>':'')+(S.canWrite?'<input class="memo r3" data-f="unit:'+u.id+':memo" value="'+esc(u.memo)+'" placeholder="비고 입력" aria-label="'+esc(u.ho)+' 비고">':(u.memo?'<div class="r2">'+esc(u.memo)+'</div>':''))+'</div>'}
 function matchQ(u){if(!S.q)return true;var q=S.q.toLowerCase();return [u.ho,u.name,u.phone,u.memo,bname(u.bid)].join(" ").toLowerCase().indexOf(q)>=0}
+function eokMan(n){n=Math.round(+n||0);if(!n)return "0";var neg=n<0;n=Math.abs(n);var e=Math.floor(n/1e8),m=Math.round((n-e*1e8)/1e4);if(m>=10000){e++;m-=10000}var o=(e?e+"억"+(m?" ":""):"")+(m||!e?won(m)+"만":"");return (neg?"-":"")+o}
 function viewHome(){
   var all=ulist(),t=totals(all),ex=expList().filter(function(x){return x.todo}),
       due=all.filter(function(u){return monthState(u).k==="bad"}).length,interest=loanMonthly();
-  var h='<section class="hero"><div class="hero-body"><p class="eyebrow">NAMU · 임대 현황</p><h1>전체 현황<small>'+blist().length+'개 건물 · '+t.n+'세대</small></h1>'+
-   '<div class="hero-acts"><span class="auto-note">● 호실마다 차임일 당일에 청구 줄이 자동으로 들어갑니다</span></div></div>'+
-   '<div class="panel"><p class="panel-t">핵심 지표 <span style="letter-spacing:0;font-weight:400">'+YM.replace("-",". ")+'월 기준</span></p><div class="kpis">'+
-   '<div class="kpi"><span class="l">입주 세대</span><span class="n num">'+t.occ+'<small>/ '+t.n+'</small></span><span class="s">공실 '+(t.n-t.occ)+'</span></div>'+
-   '<div class="kpi"><span class="l">보증금 합계</span><span class="n num">'+man(t.dep/1e4)+'<small>만원</small></span><span class="s num">'+won(t.dep)+'원</span></div>'+
-   '<div class="kpi"><span class="l">월세 + 관리비</span><span class="n num">'+man((t.rent+t.mgmt)/1e4)+'<small>만원</small></span><span class="s num">월세 '+won(t.rent)+' · 관리비 '+won(t.mgmt)+'</span></div>'+
-   '<button type="button" class="kpi'+(t.un>0?" alert":"")+'" data-act="filter-unpaid"><span class="l">미납 합계</span><span class="n num">'+won(t.un)+'<small>원</small></span><span class="s">최근 청구 미입금 '+due+'세대'+(t.pre?' · 선납 '+won(-t.pre):'')+'</span></button>'+
-   '<button type="button" class="kpi'+(ex.length?" warn":"")+'" data-go="expiry"><span class="l">만기 3개월 이내</span><span class="n num">'+ex.length+'<small>세대</small></span><span class="s">'+(ex[0]?esc(bname(ex[0].u.bid))+' '+esc(ex[0].u.ho)+' D-'+ex[0].e.days:'예정 없음')+'</span></button>'+
-   '<button type="button" class="kpi" data-go="loans"><span class="l">월 대출이자</span><span class="n num">'+man(interest/1e4)+'<small>만원</small></span><span class="s num">월세+관리비 − 이자 '+won(t.rent+t.mgmt-interest)+'</span></button>'+
-   '</div></div></section>';
+  var h='%%HSUM%%';
   var bs=blist().filter(function(b){return ulist(b.id).length});
   h+='<div class="bar"><div class="chips"><button type="button" class="chip'+(S.filter==="all"?" on":"")+'" data-filter="all">전체<em>'+t.n+'</em></button>'+
    bs.map(function(b){return '<button type="button" class="chip'+(S.filter===b.id?" on":"")+'" data-filter="'+b.id+'">'+esc(b.name)+'<em>'+ulist(b.id).length+'</em></button>'}).join("")+
@@ -680,6 +675,10 @@ function viewHome(){
   var SPF={unpaid:1,exp:1,new:1},exIds={};ex.forEach(function(x){exIds[x.u.id]=1});
   var groups=bs.filter(function(b){return S.filter==="all"||SPF[S.filter]||S.filter===b.id}).map(function(b){
     var us=ulist(b.id).filter(matchQ).filter(function(u){return S.filter==="unpaid"?unpaid(u)>0:S.filter==="exp"?!!exIds[u.id]:S.filter==="new"?!!u.newContract:true});return {b:b,us:us}}).filter(function(g){return g.us.length});
+  var fu=[];groups.forEach(function(g){fu=fu.concat(g.us)});var st=totals(fu),fl={all:"",unpaid:"미납만",exp:"만기",new:"새 계약"}[S.filter];if(fl===undefined)fl=bname(S.filter);if(S.q)fl=(fl?fl+" · ":"")+"검색 ‘"+S.q+"’";
+  var hs=('<div class="hsum"><h1>전체 현황<small>'+blist().length+'개 건물 · '+t.n+'세대</small></h1><div class="hsum-l num">'+(fl?'<span class="hsum-f">'+esc(fl)+' '+fu.length+'세대</span>':'')+
+    '<span>입주 <b>'+st.occ+'/'+st.n+'</b></span><span>보증금 <b>'+eokMan(st.dep)+'</b></span><span>월세+관리비 <b>'+eokMan(st.rent+st.mgmt)+'</b></span>'+
+    '<button type="button" class="hsum-un'+(st.un>0?" pos":"")+'" data-act="filter-unpaid" title="미납만 보기">미납 <b>'+eokMan(st.un)+'</b></button></div></div>');h=h.replace("%%HSUM%%",function(){return hs});
   if(!groups.length){h+='<div class="card empty">조건에 맞는 호실이 없습니다.</div>';return h}
   var tb='<div class="card only-wide"><div class="scroller" data-sk="home"><table class="tbl"><thead><tr><th class="l stick">호수</th><th class="l">임차인</th><th class="l">연락처</th><th>보증금</th><th title="월세와 관리비를 더한 금액">월세+관리비</th><th class="c">차임일</th><th class="c">입주일</th><th class="c">만기일</th><th class="c">최근 청구</th><th>미납 금액</th><th title="미납이 이 금액 이하이면 회색으로 표시">기준금액</th><th class="l">비고</th><th class="l">입금 입력 <span style="font-weight:400">(최근 청구에 기록)</span></th></tr></thead><tbody>';
   var cards='<div class="only-narrow">';var ft={dep:0,rent:0,mgmt:0,un:0};

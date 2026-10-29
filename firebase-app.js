@@ -98,7 +98,8 @@ function startApp() {
   if (started) return; started = true;
   $("#login").hidden = true;
   window.__namuIsOwner = role === "owner";
-  const who = $("#who"); if (who) { who.hidden = false; who.innerHTML = `<span>${esc(me.email)}${role === "view" ? " · 보기 전용" : role === "owner" ? " · 관리자" : ""}</span>${role === "owner" ? '<button type="button" class="btn sm" id="adm-open">관리</button>' : ""}<button type="button" class="btn sm ghost" id="lg-out">로그아웃</button>`; }
+  const who = $("#who"); if (who) { who.hidden = false; who.title = me.email; who.innerHTML = `<span>${esc(me.email)}${role === "view" ? " · 보기 전용" : role === "owner" ? " · 관리자" : ""}</span>${role === "owner" ? '<button type="button" class="btn sm" id="bk-go" title="지금 데이터를 백업 파일로 내려받기">⤓ 백업</button><button type="button" class="btn sm" id="adm-open">관리</button>' : ""}<button type="button" class="btn sm ghost" id="lg-out">로그아웃</button>`; }
+  if (role === "owner") onSnapshot(fdoc(fs, "meta/backup"), (d) => { lastBk = d.exists() ? d.data().at : ""; bkLabel(); }, () => {});
   window.__namuResolve({ db, user: { can: (n) => n === "data.write" ? role !== "view" : true, isOwner: () => role === "owner", canEdit: () => role !== "view" }, downloads });
 }
 
@@ -124,7 +125,7 @@ function adminView() {
   <form id="adm-add" class="adm-add"><input class="inp" id="adm-email" type="email" placeholder="승인할 이메일" required><select class="sel" id="adm-role"><option value="edit">편집 (입력·수정)</option><option value="view">보기 (읽기만)</option></select><button type="submit" class="btn p">승인</button></form>
   <div class="scroller"><table class="tbl"><thead><tr><th class="l">이메일</th><th>권한</th><th>승인일</th><th></th></tr></thead><tbody>${rows || '<tr><td colspan="4" class="muted">아직 승인한 사람이 없습니다. 관리자(본인)는 승인 없이 들어올 수 있습니다.</td></tr>'}</tbody></table></div></div>
   <div class="adm-sec"><h4>데이터</h4><div class="adm-btns"><button type="button" class="btn" id="adm-backup">⤓ 백업 파일 내려받기</button><button type="button" class="btn t" id="adm-import">⤒ 단독 파일·백업 가져오기</button></div>
-  <p class="note">백업 파일은 한 달에 한 번 정도 받아 두세요. 백업 파일과 claude.ai에서 만든 단독 HTML 파일 모두 가져올 수 있고, 가져오기 전에 달라진 내용을 먼저 보여줍니다.</p></div></div>`;
+  <p class="note">위쪽 <b>⤓ 백업</b> 버튼으로도 한 번에 받을 수 있고, 30일이 지나면 버튼이 진하게 바뀝니다. 받은 파일을 Claude 채팅에 올리면 Claude 프로젝트에도 보관됩니다. 백업 파일과 claude.ai에서 만든 단독 HTML 파일 모두 가져올 수 있고, 가져오기 전에 달라진 내용을 먼저 보여줍니다.</p></div></div>`;
 }
 document.addEventListener("click", (e) => {
   const t = e.target;
@@ -139,7 +140,7 @@ document.addEventListener("click", (e) => {
     if (t.dataset.armed !== "1") { t.dataset.armed = "1"; t.textContent = "정말 취소?"; t.classList.add("armed"); setTimeout(() => { if (t.isConnected) { t.dataset.armed = ""; t.textContent = "승인 취소"; t.classList.remove("armed"); } }, 3000); return; }
     deleteDoc(fdoc(fs, "access/" + em)); return;
   }
-  if (t.id === "adm-backup") { backup(); return; }
+  if (t.id === "adm-backup" || t.id === "bk-go") { backup(); return; }
   if (t.id === "adm-import") { const o = $("#adm"); if (o) o.remove(); const b = document.createElement("button"); b.setAttribute("data-act", "imp-open"); b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); return; }
 });
 document.addEventListener("submit", (e) => {
@@ -153,15 +154,30 @@ document.addEventListener("change", (e) => {
   const em = e.target.getAttribute && e.target.getAttribute("data-adm-role"); if (!em) return;
   updateDoc(fdoc(fs, "access/" + em), { role: e.target.value });
 });
-function alertMsg(m) { const t = $("#toast"); if (!t) return; t.textContent = m; t.hidden = false; clearTimeout(alertMsg.t); alertMsg.t = setTimeout(() => { t.hidden = true; }, 2600); }
+function alertMsg(m, ms) { const t = $("#toast"); if (!t) return; t.textContent = m; t.hidden = false; clearTimeout(alertMsg.t); alertMsg.t = setTimeout(() => { t.hidden = true; }, ms || 2600); }
+/* 백업: 머리글 ⤓ 백업 버튼 한 번. 마지막 백업 날짜는 meta/backup 에 적고, 30일 지나면 버튼을 강조 */
+let lastBk = "", bkBusy = false;
+function bkLabel() {
+  const b = $("#bk-go"); if (!b) return;
+  const days = lastBk ? Math.floor((Date.now() - new Date(lastBk).getTime()) / 864e5) : null, due = days === null || days >= 30;
+  b.className = "btn sm" + (due ? " p" : "");
+  b.textContent = bkBusy ? "백업 중…" : due ? (days === null ? "⤓ 백업 필요" : `⤓ 백업 필요 (${days}일 전)`) : `⤓ 백업 · ${lastBk.slice(5, 7)}/${lastBk.slice(8, 10)}`;
+  b.title = lastBk ? `마지막 백업 ${lastBk.slice(0, 16).replace("T", " ")}` : "아직 백업한 적이 없습니다";
+}
 async function backup() {
+  if (bkBusy) return; bkBusy = true; bkLabel();
+  try {
   alertMsg("백업 파일을 만드는 중입니다…");
   const cols = {};
-  for (const c of ["buildings", "units", "ledgers", "market", "meta"]) { cols[c] = {}; const q = await getDocs(fcol(fs, c)); q.forEach((d) => { if (!(c === "meta" && d.id !== "loans")) cols[c][d.id] = d.data(); }); }
+  for (const c of ["buildings", "units", "ledgers", "market", "meta", "photos"]) { cols[c] = {}; const q = await getDocs(fcol(fs, c)); q.forEach((d) => { if (!(c === "meta" && d.id !== "loans")) cols[c][d.id] = d.data(); }); }
   const d = new Date(), p = (n) => String(n).padStart(2, "0"), at = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
   const id = at.replace(/\D/g, "");
   await downloads.save({ filename: `NAMU_backup_${at.slice(0, 10)}_${p(d.getHours())}${p(d.getMinutes())}.json`, data: new Blob([JSON.stringify({ id, at, cols })], { type: "application/json" }) });
-  alertMsg("백업 파일을 내려받았습니다.");
+  const iso = new Date().toISOString();
+  try { await setDoc(fdoc(fs, "meta/backup"), { at: iso, by: me.email }); lastBk = iso; } catch (e) {}
+  alertMsg("백업 파일을 내려받았습니다. 이 파일을 Claude 채팅에 올리고 '백업해줘'라고 하시면 Claude에도 보관됩니다.", 7000);
+  } catch (e) { alertMsg("백업하지 못했습니다: " + (e && e.message || e), 6000); }
+  finally { bkBusy = false; bkLabel(); }
 }
 
 /* PC·휴대폰 설치(PWA) */

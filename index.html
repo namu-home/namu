@@ -364,6 +364,8 @@ input[type=date]::-webkit-datetime-edit{display:inline-flex;justify-content:cent
 .lg-go{height:44px;margin-top:8px;font-size:15px}
 .lg-msg{font-size:13px;color:var(--muted);margin:4px 0 0;text-align:center}.lg-msg.bad{color:var(--bad)}.lg-msg.ok{color:var(--teal-ink)}
 .who{display:inline-flex;align-items:center;gap:6px}.who[hidden]{display:none}
+.chip.chip-add{font-size:17px;font-weight:800;line-height:1;min-width:34px;justify-content:center;color:var(--accent);border-style:dashed}
+@media (max-width:1440px){.who span{display:none}}
 @media (max-width:760px){.who span{display:none}}
 .adm-sec{padding:12px 16px;border-top:1px solid var(--line2)}
 .adm-sec h4{margin:0 0 6px;font-size:14px;color:var(--accent-ink)}
@@ -572,7 +574,7 @@ function viewHome(){
       due=all.filter(function(u){return monthState(u).k==="bad"}).length,interest=loanMonthly();
   var h='<section class="hero"><div class="hero-body"><p class="eyebrow">NAMU · 임대 현황</p><h1>전체 현황<small>'+blist().length+'개 건물 · '+t.n+'세대</small></h1>'+
    '<p class="lead">건물을 고르면 그 건물만, 호실을 누르면 세입자 정보와 입금내역이 열립니다. 바꾼 내용은 바로 저장되어 휴대폰·PC 어디서나 같습니다.</p>'+
-   '<div class="hero-acts"><span class="auto-note">● 호실마다 차임일 당일에 청구 줄이 자동으로 들어갑니다</span>'+(S.canWrite?'<button type="button" class="btn" data-act="add-bld">건물 추가</button>':'')+(S.canWrite&&!window.__namuStandalone&&window.__namuIsOwner!==false?'<button type="button" class="btn t" data-act="imp-open">⤓ 단독 파일 가져오기</button>':'')+'</div></div>'+
+   '<div class="hero-acts"><span class="auto-note">● 호실마다 차임일 당일에 청구 줄이 자동으로 들어갑니다</span></div></div>'+
    '<div class="panel"><p class="panel-t">핵심 지표 <span style="letter-spacing:0;font-weight:400">'+YM.replace("-",". ")+'월 기준</span></p><div class="kpis">'+
    '<div class="kpi"><span class="l">입주 세대</span><span class="n num">'+t.occ+'<small>/ '+t.n+'</small></span><span class="s">공실 '+(t.n-t.occ)+'</span></div>'+
    '<div class="kpi"><span class="l">보증금 합계</span><span class="n num">'+man(t.dep/1e4)+'<small>만원</small></span><span class="s num">'+won(t.dep)+'원</span></div>'+
@@ -604,7 +606,7 @@ function viewHome(){
 /* ---------- 건물별 ---------- */
 function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물을 찾을 수 없습니다. <a href="#home">전체 현황</a></div>';
   var us=ulist(id),t=totals(us),li=loanMonthly(id),ro=S.canWrite?"":" readonly";
-  var h='<div class="bar" style="margin-top:0"><div class="chips">'+blist().map(function(x){var n=ulist(x.id).length,un=totals(ulist(x.id)).un;return '<button type="button" class="chip'+(x.id===id?" on":"")+'" data-go="b-'+x.id+'"'+(x.id===id?' aria-current="page"':'')+'>'+esc(x.name)+'<em>'+(n?n+'세대':'매물장')+'</em>'+(un>0?'<span class="dot" title="미납 있음"></span>':'')+'</button>'}).join("")+'</div></div>'+
+  var h='<div class="bar" style="margin-top:0"><div class="chips">'+blist().map(function(x){var n=ulist(x.id).length,un=totals(ulist(x.id)).un;return '<button type="button" class="chip'+(x.id===id?" on":"")+'" data-go="b-'+x.id+'"'+(x.id===id?' aria-current="page"':'')+'>'+esc(x.name)+'<em>'+(n?n+'세대':'매물장')+'</em>'+(un>0?'<span class="dot" title="미납 있음"></span>':'')+'</button>'}).join("")+(S.canWrite?'<button type="button" class="chip chip-add" data-act="add-bld" title="건물 추가" aria-label="건물 추가">+</button>':'')+'</div></div>'+
    '<section class="hero"><div class="hero-body"><p class="eyebrow">BUILDING</p><h1>'+esc(b.name)+'<small>'+esc(b.addr||"")+'</small></h1><p class="lead">'+esc(b.comp||"")+'</p>'+
    '<div class="hero-acts"><a class="btn" href="#m-'+id+'">매물장 · 수익률</a>'+(S.canWrite?'<button type="button" class="btn" data-act="add-unit" data-b="'+id+'">호실 추가</button>':'')+'</div></div>'+
    '<div class="panel"><p class="panel-t">이 건물</p><div class="kpis">'+
@@ -795,6 +797,7 @@ function describe(d,f){var t="",s="";
   else if(d.col==="buildings"){t="건물 "+((d.data||d.old).name||d.id);if(d.k==="chg"){s=Object.keys(Object.assign({},d.data,d.old)).filter(function(k){return stab(d.data[k])!==stab(d.old[k])}).map(function(k){return FL[k]||k}).join(", ")+" 변경"}}
   else if(d.col==="market"){t=bname(d.id)+" 매물장 시세"}
   else if(d.col==="meta"){t=d.id==="loans"?"이자계산 (융자 목록)":d.id}
+  else if(d.col==="photos"){t=bname(d.id)+" 건물 사진"}
   return {t:t,s:s}}
 function openImport(){var inp=document.createElement("input");inp.type="file";inp.accept=".html,.htm,.json,text/html,application/json";inp.hidden=true;document.body.appendChild(inp);setTimeout(function(){if(inp.isConnected&&!inp.files.length)inp.remove()},600000);
   inp.onchange=function(){var file=inp.files&&inp.files[0];inp.remove();if(!file)return;var rd=new FileReader();
@@ -804,12 +807,15 @@ function openImport(){var inp=document.createElement("input");inp.type="file";in
       if(!data||!data.cols||!data.cols.units){toast("파일 안에 호실 데이터가 없습니다.");return}
       var f=data.cols;["buildings","units","ledgers","market","meta"].forEach(function(k){f[k]=f[k]||{}});
       var diffs=diffCols(f,curCols()).filter(function(d){return !(d.col==="meta"&&d.id!=="loans")});
-      IM={name:file.name,at:data.at||"",f:f,diffs:diffs,del:false,busy:false,done:0};renderImport()};
+      var fp=f.photos||{},pids=Object.keys(fp).filter(function(b){return fp[b]&&fp[b].data});
+      Promise.all(pids.map(function(b){return S.db.doc("photos/"+b).get().then(function(x){return x.exists?x.data():null},function(){return null})})).then(function(cur){
+        pids.forEach(function(b,i){var c=cur[i];if(!c)diffs.push({col:"photos",id:b,k:"add",data:fp[b]});else if(c.data!==fp[b].data)diffs.push({col:"photos",id:b,k:"chg",data:fp[b],old:c})});
+        IM={name:file.name,at:data.at||"",f:f,diffs:diffs,del:false,busy:false,done:0};renderImport()})};
     rd.readAsText(file,"utf-8")};
   inp.click()}
 function renderImport(){var old=$("#im");if(old)old.remove();if(!IM)return;
   var adds=IM.diffs.filter(function(d){return d.k==="add"}),chg=IM.diffs.filter(function(d){return d.k==="chg"}),dels=IM.diffs.filter(function(d){return d.k==="del"});
-  var order={units:1,ledgers:2,buildings:3,market:4,meta:5},sec={units:"호실 정보",ledgers:"입금내역",buildings:"건물",market:"매물장 시세",meta:"이자계산"};
+  var order={units:1,ledgers:2,buildings:3,market:4,meta:5,photos:6},sec={units:"호실 정보",ledgers:"입금내역",buildings:"건물",market:"매물장 시세",meta:"이자계산",photos:"건물 사진"};
   var list=IM.diffs.slice().sort(function(a,b){return order[a.col]-order[b.col]||(a.id<b.id?-1:1)}),h="",last="";
   list.forEach(function(d){if(d.col!==last){h+='<div class="im-sec">'+sec[d.col]+'</div>';last=d.col}var x=describe(d,IM.f);
     h+='<div class="im-row"'+(d.k==="del"&&!IM.del?' style="opacity:.45"':'')+'><span class="k '+d.k+'">'+(d.k==="add"?"추가":d.k==="chg"?"변경":"파일에 없음")+'</span><span><b>'+esc(x.t)+'</b>'+(x.s?' <span class="d">'+esc(x.s)+'</span>':'')+'</span></div>'});
@@ -823,7 +829,7 @@ function renderImport(){var old=$("#im");if(old)old.remove();if(!IM)return;
   document.body.appendChild(d)}
 function runImport(){if(!IM||IM.busy)return;var todo=IM.diffs.filter(function(d){return d.k!=="del"||IM.del});IM.busy=true;IM.done=0;renderImport();
   todo.reduce(function(pr,d){return pr.then(function(){var ref=S.db.doc(d.col+"/"+d.id);var w=d.k==="del"?ref.delete():ref.set(JSON.parse(JSON.stringify(d.data)));
-      return w.then(function(){IM.done++;var s=$("#im .im-foot span");if(s)s.textContent="가져오는 중… "+IM.done+" / "+todo.length})})},Promise.resolve())
+      return w.then(function(){if(d.col==="photos")S.ph[d.id]=d.data;IM.done++;var s=$("#im .im-foot span");if(s)s.textContent="가져오는 중… "+IM.done+" / "+todo.length})})},Promise.resolve())
   .then(function(){var n=IM.done;IM=null;renderImport();toast(n+"건을 가져왔습니다.")},function(e){IM.busy=false;renderImport();toast("가져오는 중 멈췄습니다 ("+IM.done+"건 완료): "+(e&&e.message||e))})}
 /* ---------- 건물 사진 (작게 줄여 데이터베이스에 저장) ---------- */
 S.ph={};

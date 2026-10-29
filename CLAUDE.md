@@ -25,6 +25,12 @@
 - `meta/loans`: `{rows:[{bid, label, bank, amount, rate}]}` 이자계산 (`bid:"etc"` = 건물과 상관없는 기타 대출) · `meta/autobill`: 자동 청구 잠금
 - `photos/{bid}`: 건물 사진 `{data: JPEG data URI, w, h, at}` — 화면에서 최대 1280px로 줄여 약 700KB 이하로 저장. Firebase Storage는 결제 요금제가 필요해서 쓰지 않음
 - `access/{email}`: `{role: "edit" | "view", at}` 승인 목록 (관리자만 쓰기)
+- `meta/backup`: `{at, by}` 마지막 백업 시각. 머리글 **⤓ 백업** 버튼(관리자만)이 30일 지나면 진하게 바뀜
+
+## 백업
+
+머리글 ⤓ 백업 = 관리 → 백업 파일 내려받기: buildings·units·ledgers·market·meta(loans)·photos를 `NAMU_backup_YYYY-MM-DD_HHMM.json` `{id, at, cols}`로 받음. 가져오기는 사진까지 되돌림(사진은 파일에 없어도 지우지 않음).
+사용자가 이 파일을 채팅에 올리고 "백업해줘"라고 하면 claude.ai 프로젝트 "희재 작업장"의 `백업/` 폴더에 `project_write`(local_path)로 원래 이름 그대로 저장하고 건물·호실·입금내역·사진 수를 알린다. 자세한 절차는 프로젝트 문서 `claude/NAMU 앱 수정 안내.md`. 백업 파일은 이 저장소에 절대 넣지 않는다.
 
 주요 계산: 미납 = 월세+관리비−입금(청구일이 지난 줄만, sub 줄은 입금만 뺌). 만기는 계약기간(입주일~만기일)만큼 묵시적갱신. 자동 청구는 차임일 당일, 마지막 청구 후 92일 넘으면 멈춤.
 

@@ -20,7 +20,7 @@
 :root{
   --bg:#f7f3f6; --renew-bg:#c9ecd8; --renew-fg:#11593a; --term-bg:#e0434a; --term-fg:#ffffff; --new-bg:#2f6fd6; --new-fg:#ffffff; --new-soft:#e6efff; --surface:#ffffff; --surface2:#fbf7fa; --line:#e9dfe6; --line2:#f3ecf1;
   --fg:#2a1d38; --muted:#74677f; --faint:#9a8fa3;
-  --accent:#c4256f; --accent-soft:#fbe7f1; --accent-ink:#a51d5d; --hover:#fbf0f6;
+  --accent:#c4256f; --accent-soft:#fbe7f1; --accent-ink:#a51d5d; --hover:#fbf0f6; --stripe:#f5ebf1;
   --panel:#4f2a6b; --panel-ink:#ffffff; --panel-sub:#e6d3f0; --panel-tile:rgba(255,255,255,.1); --panel-edge:rgba(255,255,255,.22);
   --teal:#2e9b6a; --teal-soft:#e3f5ec; --teal-ink:#1f7a51;
   --bad:#c0362c; --bad-soft:#fde9e7; --warn:#8a6420; --warn-soft:#fff4dc;
@@ -30,7 +30,7 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#150f1b; --renew-bg:#1e5a3d; --renew-fg:#c9f5dc; --term-bg:#c7373d; --term-fg:#ffffff; --new-bg:#3b78e0; --new-fg:#ffffff; --new-soft:#182a4a; --surface:#1f1727; --surface2:#261d30; --line:#3a2d47; --line2:#2d2238;
   --fg:#f1e9f5; --muted:#b2a3bd; --faint:#8d7f99;
-  --accent:#f27bb3; --accent-soft:#3d1a30; --accent-ink:#f7a6cc; --hover:#2b1f36;
+  --accent:#f27bb3; --accent-soft:#3d1a30; --accent-ink:#f7a6cc; --hover:#2b1f36; --stripe:#2d2339;
   --panel:#3a1f52; --panel-ink:#ffffff; --panel-sub:#dcc6ea; --panel-tile:rgba(255,255,255,.08); --panel-edge:rgba(255,255,255,.18);
   --teal:#45c48c; --teal-soft:#16362a; --teal-ink:#7fe0b2;
   --bad:#ff8f86; --bad-soft:#3b1f1f; --warn:#f2c36b; --warn-soft:#382d16;
@@ -38,7 +38,7 @@
 :root[data-theme="dark"]{
   --bg:#150f1b; --renew-bg:#1e5a3d; --renew-fg:#c9f5dc; --term-bg:#c7373d; --term-fg:#ffffff; --new-bg:#3b78e0; --new-fg:#ffffff; --new-soft:#182a4a; --surface:#1f1727; --surface2:#261d30; --line:#3a2d47; --line2:#2d2238;
   --fg:#f1e9f5; --muted:#b2a3bd; --faint:#8d7f99;
-  --accent:#f27bb3; --accent-soft:#3d1a30; --accent-ink:#f7a6cc; --hover:#2b1f36;
+  --accent:#f27bb3; --accent-soft:#3d1a30; --accent-ink:#f7a6cc; --hover:#2b1f36; --stripe:#2d2339;
   --panel:#3a1f52; --panel-ink:#ffffff; --panel-sub:#dcc6ea; --panel-tile:rgba(255,255,255,.08); --panel-edge:rgba(255,255,255,.18);
   --teal:#45c48c; --teal-soft:#16362a; --teal-ink:#7fe0b2;
   --bad:#ff8f86; --bad-soft:#3b1f1f; --warn:#f2c36b; --warn-soft:#382d16;
@@ -147,6 +147,9 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .tbl td{text-align:right;padding:7px 8px;border-top:1px solid var(--line2);white-space:nowrap;background:var(--surface)}
 .tbl .l{text-align:left}.tbl .c{text-align:center}
 .tbl tbody tr.go{cursor:pointer}
+.tbl tr.ur td{border-top-color:var(--line)}
+.tbl tbody tr.ur:nth-child(even of .ur) td{background:var(--stripe)}
+.tbl tbody tr.ur:nth-child(n of .ur):hover td{background:var(--hover)}
 .tbl tbody tr.go:hover td{background:var(--hover)}
 .tbl tr.grp td{background:var(--surface2);border-top:2px solid var(--line);font-weight:700}
 .tbl tr.grp td .gname{font-size:15px;letter-spacing:-.03em}
@@ -552,8 +555,8 @@ document.addEventListener("change",function(e){
 /* ---------- 전체 현황 (Sheet1) ---------- */
 function totals(us){var t={dep:0,rent:0,mgmt:0,un:0,pre:0,occ:0,n:us.length};us.forEach(function(u){t.dep+=+u.deposit||0;t.rent+=+u.rent||0;t.mgmt+=+u.mgmt||0;var x=unpaid(u);if(x>0)t.un+=x;else t.pre+=x;if(u.name)t.occ++});return t}
 function unitRow(u){var ms=monthState(u),x=unpaid(u);
-  return '<tr><td class="l stick"><a class="holink" href="#u-'+u.id+'" title="'+esc(u.ho)+' 호실 화면으로">'+esc(u.ho)+'</a></td><td class="l">'+(abOff(u)?'<span class="nmwrap">'+nmHtml(u)+abOff(u)+'</span>':nmHtml(u))+(planTag(u)?'<br>'+planTag(u):'')+'</td><td class="l num">'+esc(u.phone)+'</td>'+
-  '<td class="num">'+wonZ(u.deposit)+'</td><td class="num">'+wonZ(u.rent)+'</td><td class="num">'+wonZ(u.mgmt)+'</td><td class="c num">'+(u.payDay?u.payDay+"일":"")+'</td>'+
+  return '<tr class="ur"><td class="l stick"><a class="holink" href="#u-'+u.id+'" title="'+esc(u.ho)+' 호실 화면으로">'+esc(u.ho)+'</a></td><td class="l">'+(abOff(u)?'<span class="nmwrap">'+nmHtml(u)+abOff(u)+'</span>':nmHtml(u))+(planTag(u)?'<br>'+planTag(u):'')+'</td><td class="l num">'+esc(u.phone)+'</td>'+
+  '<td class="num">'+wonZ(u.deposit)+'</td><td class="num" title="월세 '+won(u.rent)+(+u.mgmt?' + 관리비 '+won(u.mgmt):'')+'">'+wonZ((+u.rent||0)+(+u.mgmt||0))+'</td><td class="c num">'+(u.payDay?u.payDay+"일":"")+'</td>'+
   '<td class="c num">'+esc(u.moveIn)+'</td><td class="c num">'+expCell(u)+'</td><td class="c">'+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+'</td>'+
   '<td class="num">'+unpaidHtml(u,x)+'</td><td>'+(S.canWrite?'<input class="lim" inputmode="numeric" data-f="unit:'+u.id+':limit" value="'+(+u.limit?won(u.limit):"")+'" placeholder="기준금액" aria-label="'+esc(u.ho)+' 기준금액">':(+u.limit?won(u.limit):""))+'</td><td class="l">'+(S.canWrite?'<input class="memo" data-f="unit:'+u.id+':memo" value="'+esc(u.memo)+'" placeholder="" aria-label="'+esc(u.ho)+' 비고">':esc(u.memo))+'</td>'+
   '<td class="l">'+qpayHtml(u)+'</td></tr>'}
@@ -561,7 +564,7 @@ function qpayHtml(u){if(!S.canWrite||!u.name)return "";var t=payTarget(u);
   return '<span class="qpay"><input type="date" class="qd" id="qd-'+u.id+'" value="'+fd(TODAY)+'" aria-label="'+esc(u.ho)+' 입금일"><input class="qa" id="qa-'+u.id+'" data-qa="'+u.id+'" inputmode="numeric" placeholder="입금액" aria-label="'+esc(u.ho)+' 입금액"><button type="button" class="btn sm p" data-act="qpay" data-u="'+u.id+'" title="'+(t?esc(t.due)+" 청구에 기록":"새 청구 줄에 기록")+'">입금</button></span>'}
 function unitCard(u){var ms=monthState(u),x=unpaid(u);
   return '<div class="ucard"><div class="r1"><a class="holink ho" href="#u-'+u.id+'">'+esc(u.ho)+' ›</a><span class="nm">'+(abOff(u)?'<span class="nmwrap">'+nmHtml(u)+abOff(u)+'</span>':nmHtml(u))+'</span><span class="tags">'+planTag(u)+expPill(u,nextExp(u),"만기 ")+(u.terminate?'':expTag(u))+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+(x>0?'<span class="tag '+(underLimit(u,x)?"etc":"bad")+'">미납 '+won(x)+(monthsOf(u,x)?' · '+monthsOf(u,x):'')+'</span>':'')+'</span></div>'+
-  '<div class="r2 num"><span>보증금 <b>'+won(u.deposit)+'</b></span><span>월세 <b>'+won(u.rent)+'</b></span>'+(+u.mgmt?'<span>관리비 <b>'+won(u.mgmt)+'</b></span>':'')+(u.payDay?'<span>차임일 <b>'+u.payDay+'일</b></span>':'')+'</div>'+(S.canWrite&&u.name?'<div class="r3q">'+qpayHtml(u)+'</div>':'')+(S.canWrite?'<input class="memo r3" data-f="unit:'+u.id+':memo" value="'+esc(u.memo)+'" placeholder="비고 입력" aria-label="'+esc(u.ho)+' 비고">':(u.memo?'<div class="r2">'+esc(u.memo)+'</div>':''))+'</div>'}
+  '<div class="r2 num"><span>보증금 <b>'+won(u.deposit)+'</b></span><span>월세+관리비 <b>'+won((+u.rent||0)+(+u.mgmt||0))+'</b></span>'+(u.payDay?'<span>차임일 <b>'+u.payDay+'일</b></span>':'')+'</div>'+(S.canWrite&&u.name?'<div class="r3q">'+qpayHtml(u)+'</div>':'')+(S.canWrite?'<input class="memo r3" data-f="unit:'+u.id+':memo" value="'+esc(u.memo)+'" placeholder="비고 입력" aria-label="'+esc(u.ho)+' 비고">':(u.memo?'<div class="r2">'+esc(u.memo)+'</div>':''))+'</div>'}
 function matchQ(u){if(!S.q)return true;var q=S.q.toLowerCase();return [u.ho,u.name,u.phone,u.memo,bname(u.bid)].join(" ").toLowerCase().indexOf(q)>=0}
 function viewHome(){
   var all=ulist(),t=totals(all),ex=expList().filter(function(x){return x.todo}),
@@ -587,14 +590,14 @@ function viewHome(){
   var groups=bs.filter(function(b){return S.filter==="all"||S.filter==="unpaid"||S.filter===b.id}).map(function(b){
     var us=ulist(b.id).filter(matchQ).filter(function(u){return S.filter!=="unpaid"||unpaid(u)>0});return {b:b,us:us}}).filter(function(g){return g.us.length});
   if(!groups.length){h+='<div class="card empty">조건에 맞는 호실이 없습니다.</div>';return h}
-  var tb='<div class="card only-wide"><div class="scroller" data-sk="home"><table class="tbl"><thead><tr><th class="l stick">호수</th><th class="l">임차인</th><th class="l">연락처</th><th>보증금</th><th>월세</th><th>관리비</th><th class="c">차임일</th><th class="c">입주일</th><th class="c">만기일</th><th class="c">최근 청구</th><th>미납 금액</th><th title="미납이 이 금액 이하이면 회색으로 표시">기준금액</th><th class="l">비고</th><th class="l">입금 입력 <span style="font-weight:400">(최근 청구에 기록)</span></th></tr></thead><tbody>';
+  var tb='<div class="card only-wide"><div class="scroller" data-sk="home"><table class="tbl"><thead><tr><th class="l stick">호수</th><th class="l">임차인</th><th class="l">연락처</th><th>보증금</th><th title="월세와 관리비를 더한 금액">월세+관리비</th><th class="c">차임일</th><th class="c">입주일</th><th class="c">만기일</th><th class="c">최근 청구</th><th>미납 금액</th><th title="미납이 이 금액 이하이면 회색으로 표시">기준금액</th><th class="l">비고</th><th class="l">입금 입력 <span style="font-weight:400">(최근 청구에 기록)</span></th></tr></thead><tbody>';
   var cards='<div class="only-narrow">';var ft={dep:0,rent:0,mgmt:0,un:0};
   groups.forEach(function(g){var gt=totals(g.us);ft.dep+=gt.dep;ft.rent+=gt.rent;ft.mgmt+=gt.mgmt;ft.un+=gt.un+gt.pre;
     var shut=!S.q&&S.filter!=="unpaid"&&!!S.fold[g.b.id];
-    tb+='<tr class="grp"><td class="l stick" colspan="3"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'" title="접기 / 펼치기"><span class="fold'+(shut?" shut":"")+'">▼</span><span class="gname">'+esc(g.b.name)+'</span></button> <span class="muted" style="font-weight:400">'+gt.occ+'/'+gt.n+'세대</span><a class="glink" href="#b-'+g.b.id+'">건물 보기 ›</a></td><td class="num">'+won(gt.dep)+'</td><td class="num">'+won(gt.rent)+'</td><td class="num">'+won(gt.mgmt)+'</td><td colspan="4"></td><td class="num '+((gt.un+gt.pre)>0?"pos":"")+'">'+won(gt.un+gt.pre)+'</td><td colspan="3"></td></tr>';
+    tb+='<tr class="grp"><td class="l stick" colspan="3"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'" title="접기 / 펼치기"><span class="fold'+(shut?" shut":"")+'">▼</span><span class="gname">'+esc(g.b.name)+'</span></button> <span class="muted" style="font-weight:400">'+gt.occ+'/'+gt.n+'세대</span><a class="glink" href="#b-'+g.b.id+'">건물 보기 ›</a></td><td class="num">'+won(gt.dep)+'</td><td class="num">'+won(gt.rent+gt.mgmt)+'</td><td colspan="4"></td><td class="num '+((gt.un+gt.pre)>0?"pos":"")+'">'+won(gt.un+gt.pre)+'</td><td colspan="3"></td></tr>';
     if(!shut)tb+=g.us.map(unitRow).join("");
     cards+='<div class="ugrp"><div class="ugrp-h"><button type="button" class="gfold" data-act="fold" data-b="'+g.b.id+'" aria-expanded="'+(!shut)+'"><span class="fold'+(shut?" shut":"")+'">▼</span><b>'+esc(g.b.name)+'</b></button><span class="num">월 '+won(gt.rent+gt.mgmt)+' · 미납 '+won(gt.un)+'</span></div>'+(shut?'':g.us.map(unitCard).join(""))+'</div>'});
-  tb+='</tbody><tfoot><tr><td class="l stick" colspan="3">합계</td><td class="num">'+won(ft.dep)+'</td><td class="num">'+won(ft.rent)+'</td><td class="num">'+won(ft.mgmt)+'</td><td colspan="4" class="l muted" style="font-weight:400">월세+관리비 '+won(ft.rent+ft.mgmt)+'</td><td class="num">'+won(ft.un)+'</td><td colspan="3"></td></tr></tfoot></table></div></div>';
+  tb+='</tbody><tfoot><tr><td class="l stick" colspan="3">합계</td><td class="num">'+won(ft.dep)+'</td><td class="num">'+won(ft.rent+ft.mgmt)+'</td><td colspan="4" class="l muted" style="font-weight:400">월세 '+won(ft.rent)+' · 관리비 '+won(ft.mgmt)+'</td><td class="num">'+won(ft.un)+'</td><td colspan="3"></td></tr></tfoot></table></div></div>';
   return h+tb+cards+'</div>'}
 
 /* ---------- 건물별 ---------- */
@@ -620,7 +623,7 @@ function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물�
       '<div class="kv"><label for="f-bld-'+id+'-memo">메모</label><div class="kv-v"><textarea class="inp memo-ta" rows="2" id="f-bld-'+id+'-memo" data-f="bld:'+id+':memo"'+ro+'>'+esc(b.memo||"")+'</textarea></div></div></div>'+
   '</div></div>';
   if(us.length){
-    h+='<div class="card only-wide"><div class="card-h"><h3>호실 현황</h3></div><div class="scroller" data-sk="b"><table class="tbl"><thead><tr><th class="l stick">호수</th><th class="l">임차인</th><th class="l">연락처</th><th>보증금</th><th>월세</th><th>관리비</th><th class="c">차임일</th><th class="c">입주일</th><th class="c">만기일</th><th class="c">최근 청구</th><th>미납 금액</th><th title="미납이 이 금액 이하이면 회색으로 표시">기준금액</th><th class="l">비고</th><th class="l">입금 입력 <span style="font-weight:400">(최근 청구에 기록)</span></th></tr></thead><tbody>'+us.map(unitRow).join("")+'</tbody></table></div></div>';
+    h+='<div class="card only-wide"><div class="card-h"><h3>호실 현황</h3></div><div class="scroller" data-sk="b"><table class="tbl"><thead><tr><th class="l stick">호수</th><th class="l">임차인</th><th class="l">연락처</th><th>보증금</th><th title="월세와 관리비를 더한 금액">월세+관리비</th><th class="c">차임일</th><th class="c">입주일</th><th class="c">만기일</th><th class="c">최근 청구</th><th>미납 금액</th><th title="미납이 이 금액 이하이면 회색으로 표시">기준금액</th><th class="l">비고</th><th class="l">입금 입력 <span style="font-weight:400">(최근 청구에 기록)</span></th></tr></thead><tbody>'+us.map(unitRow).join("")+'</tbody></table></div></div>';
     h+='<div class="only-narrow">'+us.map(unitCard).join("")+'</div>';
   } else h+='<div class="card empty">등록된 호실이 없습니다. 이 건물은 매물장만 관리합니다.</div>';
   return h}

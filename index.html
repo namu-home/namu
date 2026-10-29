@@ -124,6 +124,7 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .kpi.warn .l,.kpi.warn .n,.kpi.warn .s,.kpi.warn small{color:var(--warn)}
 
 .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0 12px}
+.chip[data-bord]{touch-action:pan-x;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.chip.dragging{opacity:.75;outline:2px dashed var(--accent);outline-offset:2px;cursor:grabbing}body.bdrag,body.bdrag *{cursor:grabbing!important}body.bdrag .bar.bstick .chips{overflow-x:visible}
 .bar.bstick{position:sticky;top:var(--hubh,62px);z-index:15;background:var(--bg);padding:8px 0;margin-bottom:8px}
 @media (max-width:760px){.bar.bstick .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:100%;padding-bottom:2px}.bar.bstick .chips::-webkit-scrollbar{display:none}.bar.bstick{flex-wrap:nowrap}}
 .chips{display:flex;gap:6px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
@@ -707,7 +708,7 @@ function viewHome(){
 /* ---------- 건물별 ---------- */
 function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물을 찾을 수 없습니다. <a href="#home">전체 현황</a></div>';
   var us=ulist(id),t=totals(us),li=loanMonthly(id),ro=S.canWrite?"":" readonly";
-  var h='<div class="bar bstick" style="margin-top:0"><div class="chips">'+blist().map(function(x){var n=ulist(x.id).length,un=totals(ulist(x.id)).un;return '<button type="button" class="chip'+(x.id===id?" on":"")+'" data-go="b-'+x.id+'"'+(x.id===id?' aria-current="page"':'')+'>'+esc(x.name)+'<em>'+(n?n+'세대':'매물장')+'</em>'+(un>0?'<span class="dot" title="미납 있음"></span>':'')+'</button>'}).join("")+(S.canWrite?'<button type="button" class="chip chip-add" data-act="add-bld" title="건물 추가" aria-label="건물 추가">+</button>':'')+'</div></div>'+
+  var h='<div class="bar bstick" style="margin-top:0"><div class="chips">'+blist().map(function(x){var n=ulist(x.id).length,un=totals(ulist(x.id)).un;return '<button type="button" class="chip'+(x.id===id?" on":"")+'" data-go="b-'+x.id+'"'+(S.canWrite?' data-bord="'+x.id+'" title="끌어서 순서 바꾸기"':'')+(x.id===id?' aria-current="page"':'')+'>'+esc(x.name)+'<em>'+(n?n+'세대':'매물장')+'</em>'+(un>0?'<span class="dot" title="미납 있음"></span>':'')+'</button>'}).join("")+(S.canWrite?'<button type="button" class="chip chip-add" data-act="add-bld" title="건물 추가" aria-label="건물 추가">+</button>':'')+'</div></div>'+
    '<section class="hero"><div class="hero-body"><p class="eyebrow">BUILDING</p><h1>'+esc(b.name)+'<small>'+esc(b.addr||"")+'</small></h1><p class="lead">'+esc(b.comp||"")+'</p>'+
    '<div class="hero-acts"><a class="btn" href="#m-'+id+'">매물장 · 수익률</a>'+(S.canWrite?'<button type="button" class="btn ghost danger" data-act="del-bld" data-b="'+id+'" data-confirm="정말 건물 삭제?">건물 삭제</button>':'')+'</div></div>'+
    '<div class="panel"><p class="panel-t">이 건물</p><div class="kpis">'+
@@ -1274,6 +1275,23 @@ document.addEventListener("focusout",function(e){var tr=e.target.closest&&e.targ
   setTimeout(function(){var a=document.activeElement,cur=document.querySelector('tr[data-lrow="'+i+'"]');if(cur&&a&&cur.contains(a))return;var l=S.loans[i];if(!l||!S.lfz)return;
     var want=l.bid||"_new";if(S.lfz[i]!==want&&loanDone(l)&&l.bid){S.lfz[i]=l.bid;sched()}},150)});
 document.addEventListener("click",function(e){var a=e.target.closest&&e.target.closest("a[data-jump]");if(!a)return;e.preventDefault();var el=document.getElementById(a.getAttribute("data-jump"));if(el){el.scrollIntoView({block:"start"});window.scrollBy(0,-120)}});
+/* 건물 주소 버튼 끌어서 순서 바꾸기 (마우스: 바로 끌기, 휴대폰: 꾹 누른 뒤 끌기) */
+var BD=null,bdEat=false;
+document.addEventListener("pointerdown",function(e){var el=e.target.closest&&e.target.closest("[data-bord]");if(!el||!S.canWrite||e.button>0)return;
+  BD={el:el,x:e.clientX,y:e.clientY,on:false,touch:e.pointerType!=="mouse",id:e.pointerId};
+  if(BD.touch)BD.t=setTimeout(function(){if(BD&&!BD.on)bdStart()},450)});
+function bdStart(){BD.on=true;BD.el.classList.add("dragging");document.body.classList.add("bdrag");try{BD.el.setPointerCapture(BD.id)}catch(_){}if(navigator.vibrate)try{navigator.vibrate(15)}catch(_){}}
+document.addEventListener("pointermove",function(e){if(!BD)return;var dx=e.clientX-BD.x,dy=e.clientY-BD.y,far=Math.abs(dx)+Math.abs(dy)>8;
+  if(!BD.on){if(BD.touch){if(far){clearTimeout(BD.t);BD=null}return}if(!far)return;bdStart()}
+  e.preventDefault();var tg=document.elementFromPoint(e.clientX,e.clientY),c=tg&&tg.closest&&tg.closest("[data-bord]");
+  if(c&&c!==BD.el&&c.parentNode===BD.el.parentNode){var r=c.getBoundingClientRect(),after=e.clientX>r.left+r.width/2;c.parentNode.insertBefore(BD.el,after?c.nextSibling:c)}},{passive:false});
+document.addEventListener("touchmove",function(e){if(BD&&BD.on)e.preventDefault()},{passive:false});
+function bdEnd(){if(!BD)return;clearTimeout(BD.t);var was=BD.on,el=BD.el;BD=null;if(!was)return;el.classList.remove("dragging");document.body.classList.remove("bdrag");bdEat=true;setTimeout(function(){bdEat=false},350);
+  var ids=[].map.call(el.parentNode.querySelectorAll("[data-bord]"),function(x){return x.getAttribute("data-bord")}),n=0;
+  ids.forEach(function(id,i){if(S.b[id]&&(S.b[id].order||0)!==i+1){saveBld(id,{order:i+1});n++}});if(n){toast("건물 순서를 바꿨습니다.");render()}}
+document.addEventListener("pointerup",bdEnd);document.addEventListener("pointercancel",bdEnd);
+document.addEventListener("click",function(e){if(bdEat){e.preventDefault();e.stopPropagation();bdEat=false}},true);
+document.addEventListener("contextmenu",function(e){if(e.target.closest&&e.target.closest("[data-bord]"))e.preventDefault()});
 var qComp=false;
 function qSchedule(el){S.q=el.value;clearTimeout(qt);qt=setTimeout(function(){if(qComp)return;var p=el.selectionStart;render();var n=$("#q");if(n){n.focus();try{n.setSelectionRange(p,p)}catch(_){}}},250)}
 document.addEventListener("compositionstart",function(e){if(e.target.id==="q"){qComp=true;clearTimeout(qt)}});

@@ -273,6 +273,7 @@ label.chk{flex-direction:row;gap:12px;align-items:flex-start}
 .new-name{display:inline-block;background:var(--new-bg);color:var(--new-fg)!important;font-weight:800;border-radius:6px;padding:1px 9px}
 .chk.on-new{border-color:var(--new-bg);background:var(--new-soft)}
 .chk.on-new input{accent-color:var(--new-bg)}
+.kv-l2{display:flex;flex-direction:column;gap:2px;align-items:flex-start}.kv-l2>label:first-child{font-size:13px;font-weight:700;color:var(--muted)}.kv-l2 .frn-mini{margin-left:0;font-size:11px}
 .frn-mini{display:inline-flex;align-items:center;gap:3px;font-size:12px;color:var(--muted);white-space:nowrap;cursor:pointer;margin-left:6px}.frn-mini input{width:14px;height:14px;margin:0;accent-color:var(--accent)}
 .nx-card{border:1px solid var(--new-bg);background:var(--new-soft);border-radius:14px;padding:12px 14px;margin:12px 0}.nx-card .inp{background:var(--surface)}
 .nx{width:100%;display:flex;flex-direction:column;gap:8px}.nx>b{font-size:13px;color:var(--new-bg)}.nx-g{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:6px 10px;width:100%}.nx-f{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}.nx-f .inp{height:32px;width:100%}.nx-a{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.nx-h{font-size:12px;color:var(--muted)}.nx-h summary{cursor:pointer}.nx-h div{padding:3px 0;border-top:1px solid var(--line2)}
@@ -482,11 +483,12 @@ function nextHtml(u){var n=u.next||{},ro=S.canWrite?"":" readonly",id=u.id;if(!u
   var has=n.name||n.deposit||n.rent;
   return '<div class="nx nx-card"><b>새로 들어올 임차인</b><div class="nx-g">'+
     '<label class="nx-f"><span>입주 예정일</span><input class="inp" type="date" data-plan="'+id+'" value="'+esc(u.moveInPlan||"")+'"'+(S.canWrite?"":" disabled")+'></label>'+NX.map(f).join("")+'</div>'+
-    '<div class="nx-a">'+planTag(u)+(S.canWrite&&has?'<button type="button" class="btn sm p" data-act="next-apply" data-u="'+id+'" data-confirm="정말 입주 처리?">입주 처리</button><span class="topt-n">지금 임차인'+(u.name?'('+esc(u.name)+')':'')+'을 나간 임차인 기록으로 옮기고, 위 정보로 바꿉니다. 입금내역은 그대로 남습니다.</span>':'<span class="topt-n">새 임차인 이름과 조건을 적어 두고, 입주하는 날 <b>입주 처리</b>를 누르면 지금 임차인 자리에 들어갑니다.</span>')+'</div>'+
+    '<div class="nx-a">'+planTag(u)+(S.canWrite&&has?'<button type="button" class="btn sm p" data-act="next-apply" data-u="'+id+'" data-confirm="정말 입주 처리?">입주 처리</button><span class="topt-n">지금 임차인'+(u.name?'('+esc(u.name)+')':'')+'은 만기 알림 화면의 <b>나간 임차인</b>으로 옮겨져 3개월 보관되고, 위 정보로 바뀝니다. 입금내역은 그대로 남습니다.</span>':'<span class="topt-n">새 임차인 이름과 조건을 적어 두고, 입주하는 날 <b>입주 처리</b>를 누르면 지금 임차인 자리에 들어갑니다.</span>')+'</div>'+
     prevHtml(u)+'</div>'}
-function prevHtml(u){return (u.prevTenants||[]).length?'<details class="nx-h"><summary>나간 임차인 '+u.prevTenants.length+'명</summary>'+u.prevTenants.slice().reverse().map(function(o){return '<div>'+esc(o.out||"")+' 퇴실 · <b>'+esc(o.name||"")+'</b> '+esc(o.phone||"")+' · 보증금 '+won(o.deposit)+' · 월세 '+won(o.rent)+(+o.mgmt?' · 관리비 '+won(o.mgmt):'')+(o.moveIn?' · '+esc(o.moveIn)+'~'+esc(o.expiry||""):'')+'</div>'}).join("")+'</details>':''}
+function prevHtml(u){var n=(S.dep||[]).filter(function(o){return o.uid===u.id}).length;return n?'<p class="nx-h">이 호실에서 나간 임차인 '+n+'명 · <a href="#expiry">만기 알림 화면 아래 <b>나간 임차인</b>에서 보기</a></p>':'';}
+function prevHtmlOld(u){return (u.prevTenants||[]).length?'<details class="nx-h"><summary>나간 임차인 '+u.prevTenants.length+'명</summary>'+u.prevTenants.slice().reverse().map(function(o){return '<div>'+esc(o.out||"")+' 퇴실 · <b>'+esc(o.name||"")+'</b> '+esc(o.phone||"")+' · 보증금 '+won(o.deposit)+' · 월세 '+won(o.rent)+(+o.mgmt?' · 관리비 '+won(o.mgmt):'')+(o.moveIn?' · '+esc(o.moveIn)+'~'+esc(o.expiry||""):'')+'</div>'}).join("")+'</details>':''}
 function planTag(u){if(!u.newContract||!u.moveInPlan)return "";var d=pd(u.moveInPlan);if(!d)return "";var n=Math.round((d-TODAY)/864e5);
-  return '<span class="tag new">입주예정 '+u.moveInPlan.slice(5).replace("-","/")+' '+(n>0?"D-"+n:n===0?"오늘":"입주 "+(-n)+"일 지남")+(u.next&&u.next.name?' · '+esc(u.next.name):'')+'</span>'}
+  return '<span class="tag new">입주예정 '+u.moveInPlan.slice(5).replace("-","/")+' '+(n>0?"D-"+n:n===0?"오늘":"입주 "+(-n)+"일 지남")+'</span>'}
 function abOff(u){if(!u.name)return '';var a=autoState(u),t=a.ok?"자동 청구 켜짐":a.t;return '<span class="ab-dot '+(a.ok?"on":"off")+'" title="'+esc(t)+'" aria-label="'+esc(t)+'"></span>'}
 function nmHtml(u){if(!u.name)return '<span class="tag etc">공실</span>';if(u.newContract)return '<span class="new-name" title="새 계약'+(u.newAt?' · '+esc(u.newAt):'')+'">'+esc(u.name)+'</span>';return u.terminate?'<span class="term-name" title="계약 해지 예정">'+esc(u.name)+'</span>':esc(u.name)}
 function termEndCalc(base,mode,notice){if(mode==="notice"&&notice){var n=addMonths(pd(notice),3);var b0=pd(base);return fd(b0&&b0<n?b0:n)}return base}
@@ -516,7 +518,7 @@ function expTag(u){if(!u.name)return "";var e=nextExp(u);if(!e)return "";
   if(e.days<=WARN_DAYS){var cls=e.days<=31?"bad":"warn";return '<span class="tag '+cls+'">만기 '+(e.days===0?"오늘":"D-"+e.days)+'</span>'}return ""}
 
 /* ---------- 상태 ---------- */
-var S={fold:{},b:{},u:{},l:{},m:{},loans:[],exp:{rows:[],jong:[]},hug:null,got:{},db:null,canWrite:true,filter:"all",q:"",asc:false,showAllExp:false};
+var S={fold:{},b:{},u:{},l:{},m:{},loans:[],exp:{rows:[],jong:[]},hug:null,dep:[],got:{},db:null,canWrite:true,filter:"all",q:"",asc:false,showAllExp:false};
 function blist(){return Object.keys(S.b).map(function(k){return S.b[k]}).sort(function(a,b){return (a.order||0)-(b.order||0)})}
 function ulist(bid){var bo={};blist().forEach(function(b,i){bo[b.id]=i});
   return Object.keys(S.u).map(function(k){return S.u[k]}).filter(function(u){return !bid||u.bid===bid})
@@ -763,7 +765,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
    '<span class="nav">'+(prev?'<a class="btn sm" href="#u-'+prev.id+'">‹ '+esc(prev.ho)+'</a>':'')+(next?'<a class="btn sm" href="#u-'+next.id+'">'+esc(next.ho)+' ›</a>':'')+'</span></div>';
   h+='<div class="card"><div class="card-h"><h3>세입자 · 임대 조건</h3>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="del-unit" data-u="'+id+'" data-confirm="호실 삭제?">호실 삭제</button>':'')+'</div>'+
    '<div class="ugrid">'+
-   '<section class="usec"><h4>임차인</h4>'+kv("임차인","unit:"+id+":name",u.name,ro).replace('</div></div>','<label class="frn-mini" title="외국인이면 허그 선순위 계산 때 최우선변제금 4,800만 원으로 넣습니다"><input type="checkbox" data-frn="'+id+'"'+(u.foreign?" checked":"")+(S.canWrite?"":" disabled")+'>외국인</label></div></div>')+kv("연락처","unit:"+id+":phone",u.phone,ro)+kv("호수","unit:"+id+":ho",u.ho,ro)+kv("방 구조","unit:"+id+":type",u.type,ro)+kv("전용면적","unit:"+id+":area",u.area,ro,0,"㎡")+'</section>'+
+   '<section class="usec"><h4>임차인</h4>'+kv("임차인","unit:"+id+":name",u.name,ro).replace('<label for="f-unit-'+id+'-name">임차인</label>','<div class="kv-l2"><label for="f-unit-'+id+'-name">임차인</label><label class="frn-mini" title="외국인이면 허그 선순위 계산 때 최우선변제금 4,800만 원으로 넣습니다"><input type="checkbox" data-frn="'+id+'"'+(u.foreign?" checked":"")+(S.canWrite?"":" disabled")+'>외국인</label></div>')+kv("연락처","unit:"+id+":phone",u.phone,ro)+kv("호수","unit:"+id+":ho",u.ho,ro)+kv("방 구조","unit:"+id+":type",u.type,ro)+kv("전용면적","unit:"+id+":area",u.area,ro,0,"㎡")+'</section>'+
    '<section class="usec"><h4>임대 조건</h4>'+kv("보증금","unit:"+id+":deposit",u.deposit,ro,1,"원")+kv("월세","unit:"+id+":rent",u.rent,ro,1,"원")+kv("관리비","unit:"+id+":mgmt",u.mgmt,ro,1,"원")+kv("차임일","unit:"+id+":payDay",u.payDay,ro,1,"일")+kv("이월 금액","unit:"+id+":carry",u.carry,ro,1,"원")+kv("미납 기준","unit:"+id+":limit",u.limit,ro,1,"원")+'</section>'+
    '<section class="usec"><h4>계약 기간</h4>'+kv("입주일","unit:"+id+":moveIn",u.moveIn,ro,0,"","date")+kv("계약 만기","unit:"+id+":expiry",u.expiry,ro,0,"","date")+kv("계약기간","unit:"+id+":term",u.term||termCalc(u),ro,1,"개월")+
      '<div class="kv"><label>현재 만기</label><div class="kv-v">'+(e?(expPill(u,e)||'<b class="num">'+fd(e.date)+'</b>')+' '+expTag(u):'<span class="muted">만기일을 넣어 주세요</span>')+'</div></div></section>'+
@@ -782,7 +784,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
      '<label class="chk'+(u.autoBill!==false?' on-auto':'')+'"><input type="checkbox" data-auto="'+id+'"'+(u.autoBill!==false?" checked":"")+(S.canWrite?"":" disabled")+'><span><b>자동 청구</b><small>'+esc(autoState(u).t)+'</small></span></label>'+
    '</div>'+
    '</div>'+
-   (u.newContract||(u.prevTenants||[]).length?nextHtml(u):'')+
+   (u.newContract?nextHtml(u):'')+
    '<div class="memo-box"><label for="f-unit-'+id+'-memo">비고</label><textarea class="inp memo-ta" id="f-unit-'+id+'-memo" data-f="unit:'+id+':memo" rows="3"'+ro+'>'+esc(u.memo)+'</textarea></div>'+
    (e&&!u.terminate?'<p class="note">계약기간 '+termOf(u)+'개월(입주일~만기일) 기준으로 '+(isRenewed(u,e)?'묵시적갱신된 ':'')+'현재 만기를 계산합니다. 만기 3개월 전부터 만기 알림에 표시됩니다.'+(u.implied&&u.prevExpiry?' (만기 알림에서 갱신 체크: '+esc(u.prevExpiry)+' → '+esc(u.expiry)+')':'')+'</p>':'')+'</div>';
   var tDue=0,tPaid=0;rs.forEach(function(r){if(rowDue(r)>0)tDue+=rowDue(r);tPaid+=rowPaid(r)});
@@ -821,7 +823,16 @@ function autoNote(u){var a=autoState(u);return '<span class="auto-note'+(a.ok?""
 function cellN(k,v,ro){return '<td><input class="cell" inputmode="numeric" data-l="'+k+'" data-n="1" value="'+(+v?won(v):"")+'"'+ro+'></td>'}
 
 /* ---------- 만기 알림 ---------- */
-function viewExp(){var L=expList(),soon=L.filter(function(x){return x.soon}),todo=L.filter(function(x){return x.todo});var show=S.showAllExp?L:soon;
+/* 나간 임차인: meta/departed 한곳에 모으고, 퇴실일부터 3개월이 지나면 자동으로 지움 */
+/* 예전에 호실에 붙여 두었던 나간 임차인 기록(units.prevTenants)을 한곳으로 옮김 */
+function migPrev(){if(!S.canWrite||!S.got.u||!S.got.dep||!S.db)return;var moved=0;Object.keys(S.u).forEach(function(k){var u=S.u[k];if(u.prevTenants&&u.prevTenants.length){u.prevTenants.forEach(function(o){S.dep.push(Object.assign({uid:k,bid:u.bid,ho:u.ho},o))});saveUnit(k,{prevTenants:[]});moved++}});if(moved){S.dep=S.dep.filter(depKeep);saveDep()}}
+function saveDep(){var rs=(S.dep||[]).slice();save("meta/departed",function(){return S.db.doc("meta/departed").set({rows:rs})})}
+function depKeep(o){var d=pd(o.out);return !d||addMonths(d,3)>=TODAY}
+function departedCard(){var rs=(S.dep||[]).slice().sort(function(a,b){return (b.out||"")<(a.out||"")?-1:1});
+  return '<div class="card" id="departed"><div class="card-h"><h3>나간 임차인<span class="sub">퇴실일부터 3개월 보관 뒤 자동 삭제</span></h3></div>'+(rs.length?'<div class="scroller"><table class="tbl"><thead><tr><th>퇴실일</th><th>건물 · 호수</th><th>임차인</th><th>연락처</th><th>보증금</th><th>월세</th><th>관리비</th><th>계약 기간</th><th>삭제 예정</th>'+(S.canWrite?'<th></th>':'')+'</tr></thead><tbody>'+
+    rs.map(function(o){var i=S.dep.indexOf(o),d=pd(o.out),del=d?fd(addMonths(d,3)):"";return '<tr><td>'+esc(o.out||"")+'</td><td>'+(o.uid&&S.u[o.uid]?'<a href="#u-'+o.uid+'">'+esc(bname(o.bid))+' '+esc(o.ho||"")+'</a>':esc(bname(o.bid))+' '+esc(o.ho||""))+'</td><td>'+esc(o.name||"")+'</td><td>'+esc(o.phone||"")+'</td><td class="num">'+won(o.deposit)+'</td><td class="num">'+won(o.rent)+'</td><td class="num">'+won(o.mgmt)+'</td><td>'+(o.moveIn?esc(o.moveIn)+' ~ '+esc(o.expiry||""):'')+'</td><td class="muted">'+del+'</td>'+(S.canWrite?'<td><button type="button" class="btn sm ghost danger" data-act="dep-del" data-i="'+i+'" data-confirm="삭제?" aria-label="삭제">✕</button></td>':'')+'</tr>'}).join("")+'</tbody></table></div>':'<div class="empty">아직 나간 임차인이 없습니다. 호실 화면의 새 계약에서 <b>입주 처리</b>를 하면 여기에 남습니다.</div>')+'</div>'}
+function viewExp(){return viewExp0()+departedCard()}
+function viewExp0(){var L=expList(),soon=L.filter(function(x){return x.soon}),todo=L.filter(function(x){return x.todo});var show=S.showAllExp?L:soon;
   var h='<section class="hero"><div class="hero-body"><p class="eyebrow">LEASE · 계약 만기</p><h1>만기 알림<small>3개월 이내 '+todo.length+'세대</small></h1><p class="lead">만기일이 지나면 이전 계약기간(입주일~만기일)과 같은 기간으로 <b>묵시적갱신</b>된 것으로 보고 다음 만기를 계산합니다. 갱신된 호실은 만기일 배경이 <span class="exp-pill renew">초록색</span>, 계약 해지 호실은 이름과 만기일 배경이 <span class="exp-pill term">빨간색</span>입니다. 3개월 안에 돌아오는 만기를 <b>묵시적갱신</b> 칸에서 체크하면 같은 계약기간만큼 미리 연장되고, 체크를 풀면 원래대로 돌아갑니다. 세입자가 나가기로 했으면 <b style="color:var(--bad)">계약 해지</b>를 체크하세요. 묵시적갱신 없이 현재 만기일에 계약이 끝나고 이름이 빨간색으로 표시됩니다.</p>'+
    '<div class="hero-acts"><button type="button" class="btn'+(S.showAllExp?"":" p")+'" data-act="exp-soon">3개월 이내만</button><button type="button" class="btn'+(S.showAllExp?" p":"")+'" data-act="exp-all">전체 세대</button></div></div></section><div style="height:16px"></div>';
   if(!show.length)return h+'<div class="card empty">3개월 안에 돌아오는 만기가 없습니다.</div>';
@@ -902,7 +913,7 @@ function curCols(){var c={buildings:{},units:{},ledgers:{},market:{},meta:{}};
   Object.keys(S.u).forEach(function(k){var d=Object.assign({},S.u[k]);delete d.id;c.units[k]=d});
   Object.keys(S.l).forEach(function(k){c.ledgers[k]={rows:S.l[k]}});
   Object.keys(S.m).forEach(function(k){var d=JSON.parse(JSON.stringify(S.m[k]));delete d.id;c.market[k]=d});
-  if(S.got.loans)c.meta.loans={rows:S.loans};if(S.got.hug&&S.hug)c.meta.hug=S.hug;if(S.got.exp)c.meta.expenses={rows:S.exp.rows||[],jong:jongRows()};return c}
+  if(S.got.loans)c.meta.loans={rows:S.loans};if(S.got.hug&&S.hug)c.meta.hug=S.hug;if(S.got.dep&&S.dep.length)c.meta.departed={rows:S.dep};if(S.got.exp)c.meta.expenses={rows:S.exp.rows||[],jong:jongRows()};return c}
 var FL={name:"임차인",phone:"연락처",ho:"호수",type:"방 구조",deposit:"보증금",rent:"월세",mgmt:"관리비",payDay:"차임일",moveIn:"입주일",expiry:"계약 만기",term:"계약기간",carry:"이월 금액",limit:"미납 기준",memo:"비고",autoBill:"자동 청구",terminate:"계약 해지",termExpiry:"해지 종료일",newContract:"새 계약",moveInPlan:"입주 예정일",implied:"묵시적갱신 체크",price:"매매가",loan:"융자",rate:"이율",addr:"소재지",comp:"세대 현황",footer:"하단 문구",rows:"내용",hugAppr:"감정평가액",hugPrelim:"예비 감정평가",hugMulti:"다세대 계산",hugRefUnit:"기준 호실",hugRefPrice:"기준 호실 감정평가금액",area:"전용면적",next:"새 임차인",prevTenants:"나간 임차인",pub:"공시가격",hugPub:"공시가격",hugMort:"근저당권 합계"};
 function ulabel(id,cols){var u=(cols.units[id])||S.u[id]||{};return bname(u.bid)+" "+(u.ho||id)+(u.name?" "+u.name:"")}
 function ledUnpaid(rows,uid,cols){var u=cols.units[uid]||S.u[uid]||{};return (+u.carry||0)+(rows||[]).reduce(function(s,r){return s+rowUnpaid(r)},0)}
@@ -917,7 +928,7 @@ function describe(d,f){var t="",s="";
     s=d.k==="del"?"":(d.k==="add"?na+"줄":"줄 "+no+" → "+na)+" · 미납 "+(d.old?won(ledUnpaid(d.old.rows,d.id,f))+" → ":"")+won(ledUnpaid(d.data.rows,d.id,f))}
   else if(d.col==="buildings"){t="건물 "+((d.data||d.old).name||d.id);if(d.k==="chg"){s=Object.keys(Object.assign({},d.data,d.old)).filter(function(k){return stab(d.data[k])!==stab(d.old[k])}).map(function(k){return FL[k]||k}).join(", ")+" 변경"}}
   else if(d.col==="market"){t=bname(d.id)+" 매물장 시세"}
-  else if(d.col==="meta"){t=d.id==="loans"?"이자계산 (융자 목록)":d.id==="expenses"?"나가는 돈 · 종부세":d.id==="hug"?"허그 보증보험 기준":d.id}
+  else if(d.col==="meta"){t=d.id==="loans"?"이자계산 (융자 목록)":d.id==="expenses"?"나가는 돈 · 종부세":d.id==="hug"?"허그 보증보험 기준":d.id==="departed"?"나간 임차인":d.id}
   else if(d.col==="photos"){t=bname(d.id)+" 건물 사진"}
   return {t:t,s:s}}
 function openImport(){var inp=document.createElement("input");inp.type="file";inp.accept=".html,.htm,.json,text/html,application/json";inp.hidden=true;document.body.appendChild(inp);setTimeout(function(){if(inp.isConnected&&!inp.files.length)inp.remove()},600000);
@@ -931,7 +942,7 @@ function openImport(){var inp=document.createElement("input");inp.type="file";in
         IM={name:file.name,at:data.at||"",f:cc,diffs:pd2,del:false,busy:false,done:0};renderImport();if(miss)toast("앱에 없는 항목 "+miss+"개는 건너뜁니다.");return}
       if(!data||!data.cols||!data.cols.units){toast("파일 안에 호실 데이터가 없습니다.");return}
       var f=data.cols;["buildings","units","ledgers","market","meta"].forEach(function(k){f[k]=f[k]||{}});
-      var diffs=diffCols(f,curCols()).filter(function(d){return !(d.col==="meta"&&d.id!=="loans"&&d.id!=="expenses"&&d.id!=="hug")});
+      var diffs=diffCols(f,curCols()).filter(function(d){return !(d.col==="meta"&&d.id!=="loans"&&d.id!=="expenses"&&d.id!=="hug"&&d.id!=="departed")});
       var fp=f.photos||{},pids=Object.keys(fp).filter(function(b){return fp[b]&&fp[b].data});
       Promise.all(pids.map(function(b){return S.db.doc("photos/"+b).get().then(function(x){return x.exists?x.data():null},function(){return null})})).then(function(cur){
         pids.forEach(function(b,i){var c=cur[i];if(!c)diffs.push({col:"photos",id:b,k:"add",data:fp[b]});else if(c.data!==fp[b].data)diffs.push({col:"photos",id:b,k:"chg",data:fp[b],old:c})});
@@ -1221,7 +1232,7 @@ function viewCosts(){var all=ulist(),t=totals(all);
 /* ---------- 그리기 ---------- */
 function render(nav){
   if(!S.got.b||!S.got.u){return}
-  var R=route(),key=JSON.stringify(R);if(key!==lastKey)S.lfz=null;
+  var R=route(),key=JSON.stringify(R);if(key!==lastKey)S.lfz=null;migPrev();
   if(R.v==="b"&&!R.id){R.id=firstBid()}
   var sc={};document.querySelectorAll("[data-sk]").forEach(function(e){sc[e.getAttribute("data-sk")]=e.scrollLeft});
   var y=window.scrollY;
@@ -1342,8 +1353,10 @@ document.addEventListener("click",function(e){
     var old={name:cu2.name||"",phone:cu2.phone||"",deposit:+cu2.deposit||0,rent:+cu2.rent||0,mgmt:+cu2.mgmt||0,moveIn:cu2.moveIn||"",expiry:cu2.expiry||"",out:fd(TODAY)};
     var pa={name:nx2.name||"",phone:nx2.phone||"",deposit:+nx2.deposit||0,rent:+nx2.rent||0,mgmt:nx2.mgmt!=null&&nx2.mgmt!==""?(+nx2.mgmt||0):(+cu2.mgmt||0),moveIn:cu2.moveInPlan||fd(TODAY),expiry:nx2.expiry||"",term:0,
       terminate:false,termExpiry:"",termBase:"",termMode:"",noticeDate:"",termRenewed:false,implied:false,prevExpiry:"",origExpiry:"",newContract:true,newAt:fd(TODAY),moveInPlan:"",next:{},
-      prevTenants:(cu2.prevTenants||[]).concat(old.name||old.deposit?[old]:[])};
+      prevTenants:[]};
+    if(old.name||old.deposit){old.uid=uid;old.bid=cu2.bid;old.ho=cu2.ho;S.dep=(S.dep||[]).concat([old]);saveDep()}
     if(+nx2.payDay)pa.payDay=+nx2.payDay;if(nx2.memo)pa.memo=nx2.memo;saveUnit(uid,pa);render();toast(cu2.ho+" 새 임차인 "+(pa.name||"")+"으로 입주 처리했습니다.")}
+  else if(act==="dep-del"){S.dep=(S.dep||[]).slice();S.dep.splice(i,1);saveDep();render()}
   else if(act==="plan-apply"){var up=S.u[uid];saveUnit(uid,{moveIn:up.moveInPlan});render();toast(up.ho+" 입주일을 "+up.moveIn+"로 바꿨습니다.")}
   else if(act==="qpay"){submitQpay(uid)}
   else if(act==="imp-open"){openImport()}
@@ -1423,6 +1436,9 @@ Promise.all([window.claude&&window.claude.use?window.claude.use("db"):Promise.re
   listen("ledgers","l",function(s){var o={};s.docs.forEach(function(d){o[d.id]=(d.data().rows||[]).slice()});S.l=o});
   listen("market","m",function(s){var o={};s.docs.forEach(function(d){o[d.id]=JSON.parse(JSON.stringify(d.data()))});S.m=o});
   db.doc("meta/loans").onSnapshot(function(d){S.loans=d.exists?(d.data().rows||[]).slice():[];S.got.loans=1;sched()},function(){});
+  db.doc("meta/departed").onSnapshot(function(d){var rs=d.exists?(d.data().rows||[]).slice():[];var keep=rs.filter(depKeep);S.dep=keep;S.got.dep=1;
+    if(keep.length!==rs.length&&S.canWrite)saveDep();
+    sched()},function(){});
   db.doc("meta/hug").onSnapshot(function(d){S.hug=d.exists?d.data():null;S.got.hug=1;sched()},function(){});
   db.doc("meta/expenses").onSnapshot(function(d){var x=d.exists?d.data():{};S.exp={rows:(x.rows||[]).slice(),jong:(x.jong||[]).slice()};S.got.exp=1;sched()},function(){});
 });

@@ -338,7 +338,7 @@ label.chk{flex-direction:row;gap:12px;align-items:flex-start}
 .unit-top h1{margin:0}
 .unit-top .tags{display:flex;gap:6px;flex-wrap:wrap}
 .unit-top .nav{margin-left:auto;display:flex;gap:6px}
-.sumrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:12px}
+.sumrow{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,240px));gap:10px;margin-bottom:12px}
 .sbox{background:var(--surface2);border:1px solid var(--line2);border-radius:12px;padding:8px 12px}
 .sbox .l{display:block;font-size:12px;color:var(--muted);font-weight:700}
 .sbox .n{display:block;font-size:19px;font-weight:800;letter-spacing:-.3px}
@@ -791,7 +791,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
   h+='<div class="card" id="ledger"><div class="card-h"><h3>월세 및 관리비 입금 현황<span class="sub">'+rs.length+'건</span></h3>'+
    '<button type="button" class="btn sm" data-act="sort">'+(S.asc?"오래된 순":"최신 순")+'</button>'+
    (S.canWrite?'<button type="button" class="btn sm p" data-act="add-row" data-u="'+id+'">+ 다음 청구</button><button type="button" class="btn sm" data-act="add-blank" data-u="'+id+'">+ 빈 줄</button>':'')+'</div>'+
-   '<div class="sumrow"><div class="sbox"><span class="l">청구 합계</span><span class="n num">'+won(tDue)+'</span></div><div class="sbox good"><span class="l">입금 합계</span><span class="n num">'+won(tPaid)+'</span></div>'+
+   '<div class="sumrow">'+
    (+u.carry?'<div class="sbox"><span class="l">이월 금액</span><span class="n num">'+won(u.carry)+'</span></div>':'')+
    '<div class="sbox'+(x>0&&!underLimit(u,x)?" bad":"")+'"><span class="l">'+(x<0?"선납 (미납 −)":"미납 잔액")+'</span><span class="n num">'+won(x)+(monthsOf(u,x)?' <small style="font-size:13px">('+monthsOf(u,x)+'치)</small>':'')+'</span></div></div>'+autoNote(u)+'<div style="height:10px"></div>';
   if(!rs.length)h+='<div class="empty">입금내역이 없습니다. <b>다음 청구</b>를 누르면 월세·관리비가 채워진 줄이 생깁니다.</div>';

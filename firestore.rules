@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function isOwner() { return signedIn() && request.auth.token.email == 'matht2353@gmail.com'; }
+    function accessDoc() { return /databases/$(database)/documents/access/$(request.auth.token.email); }
+    function member() { return signedIn() && exists(accessDoc()); }
+    function canEdit() { return isOwner() || (member() && get(accessDoc()).data.role == 'edit'); }
+
+    match /access/{email} {
+      allow read: if isOwner() || (signedIn() && request.auth.token.email == email);
+      allow write: if isOwner();
+    }
+    match /{col}/{docId} {
+      allow read: if col != 'access' && (isOwner() || member());
+      allow write: if col != 'access' && canEdit();
+    }
+  }
+}

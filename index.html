@@ -124,6 +124,8 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .kpi.warn .l,.kpi.warn .n,.kpi.warn .s,.kpi.warn small{color:var(--warn)}
 
 .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0 12px}
+.bar.bstick{position:sticky;top:var(--hubh,62px);z-index:15;background:var(--bg);padding:8px 0;margin-bottom:8px}
+@media (max-width:760px){.bar.bstick .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:100%;padding-bottom:2px}.bar.bstick .chips::-webkit-scrollbar{display:none}.bar.bstick{flex-wrap:nowrap}}
 .chips{display:flex;gap:6px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 13px;font-weight:700;font-size:13px;color:var(--fg);white-space:nowrap}
 .chip:hover{border-color:var(--accent)}
@@ -170,6 +172,8 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 /* 휴대폰 카드 목록 */
 .only-wide{display:block}.only-narrow{display:none}
 @media (max-width:720px){.only-wide{display:none}.only-narrow{display:block}}
+@media (max-width:720px){.card-h.only-narrow{display:flex}}
+.hug-in .kv-v{flex-wrap:wrap}
 .ugrp{margin-bottom:14px}
 .ugrp-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 2px;border:0;background:transparent;width:100%;text-align:left}
 .ugrp-h b{font-size:16px;letter-spacing:-.03em}
@@ -571,6 +575,8 @@ function route(){var h=(location.hash||"").replace(/^#/,"");var m;
 function go(h){if(("#"+h)===location.hash){render(true)}else location.hash=h}
 var lastKey="";
 window.addEventListener("hashchange",function(){render(true)});
+function setHubH(){var hb=document.querySelector(".hub");if(hb)document.documentElement.style.setProperty("--hubh",hb.offsetHeight+"px")}
+window.addEventListener("resize",setHubH);setTimeout(setHubH,0);
 
 /* ---------- 머리글 · 이동 막대 ---------- */
 function expList(){return ulist().filter(function(u){return u.name}).map(function(u){var e=nextExp(u),pe=(u.implied&&u.prevExpiry)?expFrom(u.prevExpiry,termOf(u)):null;
@@ -701,7 +707,7 @@ function viewHome(){
 /* ---------- 건물별 ---------- */
 function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물을 찾을 수 없습니다. <a href="#home">전체 현황</a></div>';
   var us=ulist(id),t=totals(us),li=loanMonthly(id),ro=S.canWrite?"":" readonly";
-  var h='<div class="bar" style="margin-top:0"><div class="chips">'+blist().map(function(x){var n=ulist(x.id).length,un=totals(ulist(x.id)).un;return '<button type="button" class="chip'+(x.id===id?" on":"")+'" data-go="b-'+x.id+'"'+(x.id===id?' aria-current="page"':'')+'>'+esc(x.name)+'<em>'+(n?n+'세대':'매물장')+'</em>'+(un>0?'<span class="dot" title="미납 있음"></span>':'')+'</button>'}).join("")+(S.canWrite?'<button type="button" class="chip chip-add" data-act="add-bld" title="건물 추가" aria-label="건물 추가">+</button>':'')+'</div></div>'+
+  var h='<div class="bar bstick" style="margin-top:0"><div class="chips">'+blist().map(function(x){var n=ulist(x.id).length,un=totals(ulist(x.id)).un;return '<button type="button" class="chip'+(x.id===id?" on":"")+'" data-go="b-'+x.id+'"'+(x.id===id?' aria-current="page"':'')+'>'+esc(x.name)+'<em>'+(n?n+'세대':'매물장')+'</em>'+(un>0?'<span class="dot" title="미납 있음"></span>':'')+'</button>'}).join("")+(S.canWrite?'<button type="button" class="chip chip-add" data-act="add-bld" title="건물 추가" aria-label="건물 추가">+</button>':'')+'</div></div>'+
    '<section class="hero"><div class="hero-body"><p class="eyebrow">BUILDING</p><h1>'+esc(b.name)+'<small>'+esc(b.addr||"")+'</small></h1><p class="lead">'+esc(b.comp||"")+'</p>'+
    '<div class="hero-acts"><a class="btn" href="#m-'+id+'">매물장 · 수익률</a>'+(S.canWrite?'<button type="button" class="btn ghost danger" data-act="del-bld" data-b="'+id+'" data-confirm="정말 건물 삭제?">건물 삭제</button>':'')+'</div></div>'+
    '<div class="panel"><p class="panel-t">이 건물</p><div class="kpis">'+
@@ -743,7 +749,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
    '<span class="nav">'+(prev?'<a class="btn sm" href="#u-'+prev.id+'">‹ '+esc(prev.ho)+'</a>':'')+(next?'<a class="btn sm" href="#u-'+next.id+'">'+esc(next.ho)+' ›</a>':'')+'</span></div>';
   h+='<div class="card"><div class="card-h"><h3>세입자 · 임대 조건</h3>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="del-unit" data-u="'+id+'" data-confirm="호실 삭제?">호실 삭제</button>':'')+'</div>'+
    '<div class="ugrid">'+
-   '<section class="usec"><h4>임차인</h4>'+kv("임차인","unit:"+id+":name",u.name,ro)+kv("연락처","unit:"+id+":phone",u.phone,ro)+kv("호수","unit:"+id+":ho",u.ho,ro)+kv("방 구조","unit:"+id+":type",u.type,ro)+'</section>'+
+   '<section class="usec"><h4>임차인</h4>'+kv("임차인","unit:"+id+":name",u.name,ro)+kv("연락처","unit:"+id+":phone",u.phone,ro)+kv("호수","unit:"+id+":ho",u.ho,ro)+kv("방 구조","unit:"+id+":type",u.type,ro)+kv("전용면적","unit:"+id+":area",u.area,ro,0,"㎡")+'</section>'+
    '<section class="usec"><h4>임대 조건</h4>'+kv("보증금","unit:"+id+":deposit",u.deposit,ro,1,"원")+kv("월세","unit:"+id+":rent",u.rent,ro,1,"원")+kv("관리비","unit:"+id+":mgmt",u.mgmt,ro,1,"원")+kv("차임일","unit:"+id+":payDay",u.payDay,ro,1,"일")+kv("이월 금액","unit:"+id+":carry",u.carry,ro,1,"원")+kv("미납 기준","unit:"+id+":limit",u.limit,ro,1,"원")+'</section>'+
    '<section class="usec"><h4>계약 기간</h4>'+kv("입주일","unit:"+id+":moveIn",u.moveIn,ro,0,"","date")+kv("계약 만기","unit:"+id+":expiry",u.expiry,ro,0,"","date")+kv("계약기간","unit:"+id+":term",u.term||termCalc(u),ro,1,"개월")+
      '<div class="kv"><label>현재 만기</label><div class="kv-v">'+(e?(expPill(u,e)||'<b class="num">'+fd(e.date)+'</b>')+' '+expTag(u):'<span class="muted">만기일을 넣어 주세요</span>')+'</div></div></section>'+
@@ -831,7 +837,7 @@ function yieldBoxes(c){return '<div class="yield">'+
 function viewMarket(bid){var bs=blist();if(!bid||!S.b[bid])bid=bs[0]&&bs[0].id;if(!bid)return '<div class="card empty">건물이 없습니다.</div>';
   var b=S.b[bid],m=S.m[bid]||{price:b.price,loan:b.loan,rate:b.rate,rows:[]},ro=S.canWrite?"":" readonly";
   var cr=curRows(bid),c1=calc(b.price,b.loan,b.rate,cr),c2=calc(m.price,m.loan,m.rate,m.rows||[]);
-  var h='<div class="bar" style="margin-top:0"><div class="chips">'+bs.map(function(x){return '<button type="button" class="chip'+(x.id===bid?" on":"")+'" data-go="m-'+x.id+'">'+esc(x.name)+'</button>'}).join("")+'</div></div>';
+  var h='<div class="bar bstick" style="margin-top:0"><div class="chips">'+bs.map(function(x){return '<button type="button" class="chip'+(x.id===bid?" on":"")+'" data-go="m-'+x.id+'">'+esc(x.name)+'</button>'}).join("")+'</div></div>';
   h+='<section class="hero"><div class="hero-body"><p class="eyebrow">매물장 · 단위 만원</p><h1>'+esc(b.name)+'<small>'+esc(b.addr||"")+'</small></h1><p class="lead">대지 '+esc(b.land||"-")+' · 건축 '+esc(b.bldg||"-")+' · 연면적 '+esc(b.gfa||"-")+' · 주차 '+esc(b.parking||"-")+'<br>'+esc(b.comp||"")+'</p></div>'+
    '<div class="panel"><p class="panel-t">수익률 비교 (현재 → 시세)</p><div class="kpis cmp">'+
    '<div class="kpi"><span class="l">월세 합계</span><span class="n num">'+man(c1.rent)+' → '+man(c2.rent)+'</span><span class="s">만원</span></div>'+
@@ -1214,7 +1220,7 @@ function render(nav){
   else if(R.v==="m")h+=viewMarket(R.id);
   else if(R.v==="loans")h+=viewLoans();
   else if(R.v==="cost")h+=viewCosts();
-  $("#view").innerHTML=h;
+  $("#view").innerHTML=h;setHubH();
   document.querySelectorAll("[data-sk]").forEach(function(e){var k=e.getAttribute("data-sk");if(sc[k]!=null&&key===lastKey)e.scrollLeft=sc[k]});
   if((nav||!lastKey)&&key!==lastKey){if(R.ledger){var l=$("#ledger");if(l)setTimeout(function(){l.scrollIntoView({block:"start"});window.scrollBy(0,-120)},0)}else window.scrollTo(0,0)}
   else window.scrollTo(0,y);

@@ -63,6 +63,9 @@ button{cursor:pointer}
 .namu-word{font-family:var(--brand);font-weight:700;font-size:24px;letter-spacing:.04em;line-height:1;color:var(--word)}
 .namu-word span{color:var(--word2)}
 #logo svg{display:block}
+.brand-logo{display:block;height:44px;width:auto}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .brand-logo{background:#ffffff;border-radius:10px;padding:2px 6px}}:root[data-theme="dark"] .brand-logo{background:#ffffff;border-radius:10px;padding:2px 6px}
+.bc-ph img.bc-thumb{object-fit:contain;padding:6px;background:#ffffff}
 .wh-chip{font-size:12px;font-weight:700;color:var(--muted);background:var(--surface2);border:1px solid var(--line2);border-radius:999px;padding:2px 11px 2px 9px;white-space:nowrap}
 .wh-chip i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--chip-dot);margin-right:6px;vertical-align:1px}
 .tabs{display:flex;gap:4px;flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none}
@@ -426,7 +429,7 @@ button.stile{cursor:pointer}button.stile:hover{background:var(--hover)}
 </style>
 
 <header class="hub"><div class="hub-in gut">
-  <button type="button" class="brand" data-go="sum" aria-label="NAMU 오늘의 요약으로"><span id="logo"></span><span class="namu-word">NA<span>MU</span></span><span class="wh-chip">주택관리</span></button>
+  <button type="button" class="brand" data-go="sum" aria-label="NAMU 오늘의 요약으로"><img class="brand-logo" src="./logo.png" alt="NAMU" width="88" height="40"><span class="wh-chip">주택관리</span></button>
   <nav class="tabs" id="tabs" aria-label="메뉴"></nav>
   <div class="hub-right"><span class="today num" id="today"></span><span class="who" id="who" hidden></span><span class="sync" id="sync"><i></i><span>연결 중</span></span></div>
 </div></header>
@@ -460,7 +463,7 @@ function namuTree(h){ /* 명함의 하트 나무: 갈색 줄기 + 분홍·자주
   for(var i=0;i<46;i++){var a=rnd()*Math.PI*2,r=Math.sqrt(rnd()),x=20+Math.cos(a)*r*15.5,y=14+Math.sin(a)*r*11,sc=1.1+rnd()*1.2,rot=Math.round(rnd()*60-30);
     hs+='<path d="M0 1C-1.5 0-1.3-1.3 0-.6C1.3-1.3 1.5 0 0 1Z" transform="translate('+x.toFixed(1)+' '+y.toFixed(1)+') rotate('+rot+') scale('+sc.toFixed(2)+')" fill="'+cols[i%cols.length]+'" opacity="'+(0.75+rnd()*0.25).toFixed(2)+'"/>'}
   return '<svg viewBox="0 0 40 40" width="'+h+'" height="'+h+'" aria-hidden="true"><path d="M18.4 39C19.2 33 19.3 28 17 22.6L18.6 22.2C19.9 24.6 20.4 26.4 20.8 27.6C21.6 25.4 23 23.4 25.2 21.6L26.2 22.8C23.6 25.4 22.4 30 22.2 39Z" style="fill:var(--trunk)"/>'+hs+'</svg>'}
-$("#logo").innerHTML=namuTree(34);window.__namuTree=namuTree;
+window.__namuTree=namuTree;
 
 /* 날짜 */
 function pd(s){if(!s)return null;var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(s);return m?new Date(+m[1],+m[2]-1,+m[3]):null}
@@ -668,7 +671,7 @@ function viewSum(){
   h+='<div class="sum-grid">'+t2+t3+'</div>';
   /* 4. 건물 카드 */
   h+='<div class="card-h" style="margin-top:6px"><h3>건물</h3></div><div class="bc-grid">'+blist().map(function(b){var us=ulist(b.id),t=totals(us),net=t.ia-loanMonthly(b.id)-expMonthly(b.id),ph=S.ph[b.id];if(ph===undefined)loadPhoto(b.id);
-    return '<a class="bc" href="#b-'+b.id+'"><span class="bc-ph">'+(ph&&ph.data?'<img src="'+ph.data+'" alt="">':namuTree(44))+'</span><span class="bc-b"><b>'+esc(b.name)+'</b>'+
+    return '<a class="bc" href="#b-'+b.id+'"><span class="bc-ph">'+(ph&&ph.data?'<img src="'+ph.data+'" alt="">':'<img class="bc-thumb" src="./thumb.png" alt="">')+'</span><span class="bc-b"><b>'+esc(b.name)+'</b>'+
       '<span class="bc-r"><span>입주 <b class="num">'+t.occ+'/'+t.n+'</b></span><span>미납 <b class="num'+(t.un>0?" pos":"")+'">'+won(t.un)+'</b></span></span>'+
       '<span class="bc-r"><span>월 순수익 <b class="num'+(net<0?" pos":"")+'">'+won(net)+'</b></span></span></span></a>'}).join("")+'</div>';
   return h}

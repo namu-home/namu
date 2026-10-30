@@ -249,7 +249,7 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .kv-wide{margin-top:12px;border-top:0;grid-template-columns:84px minmax(0,1fr)}
 .chks{display:flex;flex-direction:column;gap:10px;min-width:0}
 .chks .chk{flex:none}
-.memo-box{margin-top:12px;max-width:1268px}
+.u-nav{display:inline-flex;gap:6px;margin-left:auto;margin-right:8px}.memo-box{margin-top:12px;max-width:1268px}
 .memo-box label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:0 0 4px}
 .memo-ta{display:block;width:100%;height:auto;min-height:84px;padding:8px 12px;line-height:1.5;resize:vertical;text-align:left!important;font:inherit}
 .kv-wide{max-width:1014px}
@@ -782,9 +782,7 @@ function dfld(label,key,val,ro){return '<div class="fld"><label for="f-'+key.rep
 function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty">호실을 찾을 수 없습니다. <a href="#home">전체 현황</a></div>';
   var us=ulist(u.bid),ix=us.indexOf(u),prev=us[ix-1],next=us[ix+1],ro=S.canWrite?"":" readonly";
   var e=nextExp(u),ms=monthState(u),x=unpaid(u),rs=rows(id);
-  var h='<div class="unit-top"><h1>'+esc(bname(u.bid))+' '+esc(u.ho)+'<small>'+(u.name?nmHtml(u):"공실")+'</small></h1><span class="tags">'+planTag(u)+expPill(u,e,"만기 ")+expTag(u)+'<span class="tag '+ms.k+'">'+ms.t+'</span></span>'+
-   '<span class="nav">'+(prev?'<a class="btn sm" href="#u-'+prev.id+'">‹ '+esc(prev.ho)+'</a>':'')+(next?'<a class="btn sm" href="#u-'+next.id+'">'+esc(next.ho)+' ›</a>':'')+'</span></div>';
-  h+='<div class="card"><div class="card-h"><h3>세입자 · 임대 조건</h3>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="del-unit" data-u="'+id+'" data-confirm="호실 삭제?">호실 삭제</button>':'')+'</div>'+
+  var h='<div class="card"><div class="card-h"><h3>세입자 · 임대 조건</h3><span class="u-nav">'+(prev?'<a class="btn sm" href="#u-'+prev.id+'">‹ '+esc(prev.ho)+'</a>':'')+(next?'<a class="btn sm" href="#u-'+next.id+'">'+esc(next.ho)+' ›</a>':'')+'</span>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="del-unit" data-u="'+id+'" data-confirm="호실 삭제?">호실 삭제</button>':'')+'</div>'+
    '<div class="ugrid">'+
    '<section class="usec"><h4>임차인</h4>'+kv("임차인","unit:"+id+":name",u.name,ro).replace('<label for="f-unit-'+id+'-name">임차인</label>','<div class="kv-l2"><label for="f-unit-'+id+'-name">임차인</label><label class="frn-mini" title="외국인이면 허그 선순위 계산 때 최우선변제금 4,800만 원으로 넣습니다"><input type="checkbox" data-frn="'+id+'"'+(u.foreign?" checked":"")+(S.canWrite?"":" disabled")+'>외국인</label></div>')+kv("연락처","unit:"+id+":phone",fmtPhone(u.phone),ro)+kv("호수","unit:"+id+":ho",u.ho,ro)+kv("방 구조","unit:"+id+":type",u.type,ro)+kv("전용면적","unit:"+id+":area",u.area,ro,0,"㎡")+'</section>'+
    '<section class="usec"><h4>임대 조건</h4>'+kv("보증금","unit:"+id+":deposit",u.deposit,ro,1,"원")+kv("월세","unit:"+id+":rent",u.rent,ro,1,"원")+kv("관리비","unit:"+id+":mgmt",u.mgmt,ro,1,"원")+kv("차임일","unit:"+id+":payDay",u.payDay,ro,1,"일")+kv("이월 금액","unit:"+id+":carry",u.carry,ro,1,"원")+kv("미납 기준","unit:"+id+":limit",u.limit,ro,1,"원")+'</section>'+

@@ -1082,9 +1082,11 @@ function rateAt(l,ds){var r=+l.rate||0;(l.rates||[]).slice().sort(function(a,b){
 /* 원금 방식: amount = 최초 원금, loanDate = 대출일, grace = 거치(개월), months = 거치 뒤 상환 횟수. 대출일부터 달마다 그때 금리로 따라가며 계산 */
 function loanCalcP(l,kd){var P=+l.amount||0,d0=pd(l.loanDate),G=Math.max(0,Math.round(+l.grace||0)),N=Math.round(+l.months||0),td=fd(TODAY),cr=rateAt(l,td)/12;
   if(kd==="int"||!N)return {kind:kd,bal:P,int:P*cr,pay:P*cr,left:null,need:kd!=="int"&&!N,cur:cr*12};
-  var B=P,A=null,lr=null,paid=0,prinFix=P/N;
-  for(var m=1;m<=G+N;m++){var due=addMonths(d0,m);if(due>TODAY)break;var rr=rateAt(l,fd(addMonths(d0,m-1)))/12,it=B*rr;
+  var B=P,A=null,lr=null,paid=0,prinFix=P/N,xs=(l.extra||[]).filter(function(x){return x.date&&+x.amount>0});
+  for(var m=1;m<=G+N;m++){var due=addMonths(d0,m);if(due>TODAY)break;var ps=fd(addMonths(d0,m-1)),dd=fd(due),rr=rateAt(l,ps)/12,it=B*rr;
+    xs.forEach(function(x){if(x.date>ps&&x.date<=dd){B-=+x.amount;A=null}});
     if(m>G){var idx=m-G;if(kd==="eq"){if(A===null||rr!==lr){var rem=N-idx+1;A=rr?B*rr/(1-Math.pow(1+rr,-rem)):B/rem;lr=rr}B-=A-it}else B-=prinFix;if(B<1){B=0}}paid=m}
+  xs.forEach(function(x){var lastDue=fd(addMonths(d0,paid));if(x.date>lastDue&&x.date<=fd(TODAY)){B-=+x.amount}});
   var done=paid>=G+N||B<=0;if(done)return {kind:kd,bal:0,int:0,pay:0,left:0,done:true,cur:cr*12};
   var it2=B*cr;if(paid<G)return {kind:kd,bal:B,int:it2,pay:it2,left:N,grace:true,gs:fd(addMonths(d0,G)),cur:cr*12};
   var remN=N-(paid-G),pay=kd==="eq"?(cr?B*cr/(1-Math.pow(1+cr,-remN)):B/remN):Math.min(prinFix,B)+it2;
@@ -1142,7 +1144,7 @@ function viewLoans(){var ro=S.canWrite?"":" readonly";var all=ulist(),t=totals(a
         '<td><input class="cell w" inputmode="numeric" data-ln="'+i+'|amount" value="'+(+l.amount?won(l.amount):"")+'"'+ro+'></td><td><input class="cell" type="date" data-ln="'+i+'|loanDate" value="'+esc(l.loanDate||"")+'"'+ro+'>'+(!l.loanDate&&l.start?'<br><small class="muted" title="예전 방식: 대출금=지금 잔액, 기간=남은 횟수">잔액 기준 · '+esc(l.start)+'</small>':'')+'</td>'+
         '<td><input class="cell s" inputmode="numeric" data-ln="'+i+'|grace" value="'+(+l.grace||"")+'" placeholder="0"'+(kd==="int"?" disabled":"")+ro+'></td>'+
         '<td><input class="cell s" inputmode="numeric" data-ln="'+i+'|months" value="'+(+l.months||"")+'" placeholder="'+(kd==="int"?"":"예: 240")+'"'+(kd==="int"?" disabled":"")+ro+'></td>'+
-        '<td class="num"><button type="button" class="rate-b" data-act="lr-open" data-i="'+i+'" title="금리 변경 내역 보기·추가">'+(Math.round(rateAt(l,fd(TODAY))*1e5)/1e3||0)+'%'+((l.rates||[]).length?' <small>변동 '+l.rates.length+'</small>':'')+' ▾</button></td>'+
+        '<td class="num"><button type="button" class="rate-b" data-act="lr-open" data-i="'+i+'" title="금리 변경 내역 보기·추가">'+(Math.round(rateAt(l,fd(TODAY))*1e5)/1e3||0)+'%'+((l.rates||[]).length?' <small>변동 '+l.rates.length+'</small>':'')+((l.extra||[]).length?' <small>추가상환 '+l.extra.length+'</small>':'')+' ▾</button></td>'+
         '<td class="num">'+won(c.bal)+(c.grace?'<br><small class="muted">거치 중 · '+esc(c.gs)+' 상환 시작</small>':c.left!=null?'<br><small class="muted">남은 '+c.left+'회</small>':c.need?'<br><small class="pos">기간 입력</small>':'')+(c.done?'<br><small class="muted">상환 끝</small>':'')+'</td><td class="num"><b>'+won(c.int)+'</b></td><td class="num">'+won(c.pay)+'</td>'+
         '<td><input class="cell memo-c" data-ln="'+i+'|memo" value="'+esc(l.memo||"")+'" placeholder="메모"'+ro+'></td>'+
         '<td>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="loan-del" data-i="'+i+'" data-confirm="삭제?" aria-label="삭제">✕</button>':'')+'</td></tr>'+
@@ -1243,7 +1245,9 @@ function rateRowHtml(l,i){var ro=S.canWrite?"":" readonly",rs=(l.rates||[]);
     '<div class="lr-l"><span class="lr-i"><span>처음 금리'+(l.loanDate?' ('+esc(l.loanDate)+'부터)':'')+'</span><input class="cell s" inputmode="decimal" data-ln="'+i+'|rate" value="'+(l.rate?Math.round(l.rate*1e5)/1e3:"")+'"'+ro+'>%</span>'+
     rs.map(function(x,j){return '<span class="lr-i"><input class="cell" type="date" data-lr="'+i+'|'+j+'|from" value="'+esc(x.from||"")+'"'+ro+'>부터<input class="cell s" inputmode="decimal" data-lr="'+i+'|'+j+'|rate" value="'+(x.rate!==""&&x.rate!=null?Math.round(x.rate*1e5)/1e3:"")+'"'+ro+'>%'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="lr-del" data-i="'+i+'" data-j="'+j+'" aria-label="삭제">✕</button>':'')+'</span>'}).join("")+
     (S.canWrite?'<button type="button" class="btn sm" data-act="lr-add" data-i="'+i+'">+ 금리 변경 추가</button>':'')+'</div>'+
-    '<small class="muted">금리가 바뀐 날짜와 새 금리를 적으면 그날부터 그 금리로 계산합니다. 날짜 순서대로 적지 않아도 됩니다.</small></div></td></tr>'}
+    '<small class="muted">금리가 바뀐 날짜와 새 금리를 적으면 그날부터 그 금리로 계산합니다. 날짜 순서대로 적지 않아도 됩니다.</small>'+
+    (l.loanDate?'<b>원금 추가 상환 (중도상환)</b><div class="lr-l">'+(l.extra||[]).map(function(x,j){return '<span class="lr-i"><input class="cell" type="date" data-lx="'+i+'|'+j+'|date" value="'+esc(x.date||"")+'"'+ro+'><input class="cell w" inputmode="numeric" data-lx="'+i+'|'+j+'|amount" value="'+(+x.amount?won(x.amount):"")+'" placeholder="금액"'+ro+'>원'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="lx-del" data-i="'+i+'" data-j="'+j+'" aria-label="삭제">✕</button>':'')+'</span>'}).join("")+
+      (S.canWrite?'<button type="button" class="btn sm" data-act="lx-add" data-i="'+i+'">+ 추가 상환 추가</button>':'')+'</div><small class="muted">정해진 상환 말고 원금을 더 갚은 날과 금액을 적으면 그만큼 남은 원금에서 뺍니다.</small>':'')+'</div></td></tr>'}
 /* ---------- 지출 (이자 · 공과금 · 종부세 정리) ---------- */
 function viewCosts(){var all=ulist(),t=totals(all);
   var h='<section class="hero"><div class="hero-body"><p class="eyebrow">COST · 지출</p><h1>지출</h1><p class="lead">건물마다 나가는 이자와 공과금·관리 비용, 종부세를 한곳에 모아 한 달 지출과 순수익을 계산합니다. 이자는 <a href="#loans"><b>이자계산</b></a>에 적은 대출에서 자동으로 가져옵니다.</p></div></section><div style="height:16px"></div>';
@@ -1323,6 +1327,7 @@ document.addEventListener("change",function(e){var t=e.target,a;
     r2[f3]=t.getAttribute("data-n")?toNum(t.value):t.value;S.m[bid].rows[i2]=r2;saveMarket(bid);sched();return}
   if((a=t.getAttribute("data-ln"))){var q3=a.split("|"),i3=+q3[0],f4=q3[1];var l=Object.assign({},S.loans[i3]);
     l[f4]=f4==="amount"||f4==="months"||f4==="grace"?toNum(t.value):f4==="rate"?toNum(t.value)/100:t.value;S.loans[i3]=l;saveLoans();sched();return}
+  if((a=t.getAttribute("data-lx"))){var qa=a.split("|"),ia=+qa[0],ja=+qa[1],fa=qa[2];var la=Object.assign({},S.loans[ia]),xa=(la.extra||[]).slice(),ea=Object.assign({},xa[ja]);ea[fa]=fa==="amount"?toNum(t.value):t.value;xa[ja]=ea;la.extra=xa;S.loans[ia]=la;saveLoans();sched();return}
   if((a=t.getAttribute("data-lr"))){var q9=a.split("|"),i9=+q9[0],j9=+q9[1],f9=q9[2];var l9=Object.assign({},S.loans[i9]),rs9=(l9.rates||[]).slice(),x9=Object.assign({},rs9[j9]);
     x9[f9]=f9==="rate"?(t.value===""?"":toNum(t.value)/100):t.value;rs9[j9]=x9;l9.rates=rs9;S.loans[i9]=l9;saveLoans();sched();return}
   if((a=t.getAttribute("data-ex"))){var q5=a.split("|"),i5=+q5[0],f5=q5[1];S.exp.rows=(S.exp.rows||[]).slice();var er=Object.assign({},S.exp.rows[i5]);
@@ -1440,6 +1445,8 @@ document.addEventListener("click",function(e){
   else if(act==="ex-del"){S.exp.rows=(S.exp.rows||[]).slice();S.exp.rows.splice(i,1);saveExp();render()}
   else if(act==="lr-open"){S.lrOpen=S.lrOpen||{};S.lrOpen[i]=!S.lrOpen[i];render()}
   else if(act==="lr-add"){var l8=Object.assign({},S.loans[i]);l8.rates=(l8.rates||[]).concat([{from:fd(TODAY),rate:rateAt(l8,fd(TODAY))}]);S.loans=S.loans.slice();S.loans[i]=l8;saveLoans();S.lrOpen=S.lrOpen||{};S.lrOpen[i]=true;render()}
+  else if(act==="lx-add"){var l6=Object.assign({},S.loans[i]);l6.extra=(l6.extra||[]).concat([{date:fd(TODAY),amount:0}]);S.loans=S.loans.slice();S.loans[i]=l6;saveLoans();render()}
+  else if(act==="lx-del"){var l5=Object.assign({},S.loans[i]),x5=(l5.extra||[]).slice();x5.splice(+el.getAttribute("data-j"),1);l5.extra=x5;S.loans=S.loans.slice();S.loans[i]=l5;saveLoans();render()}
   else if(act==="lr-del"){var l7=Object.assign({},S.loans[i]),rs7=(l7.rates||[]).slice();rs7.splice(+el.getAttribute("data-j"),1);l7.rates=rs7;S.loans=S.loans.slice();S.loans[i]=l7;saveLoans();render()}
   else if(act==="loan-del"){S.lrOpen={};S.loans=S.loans.slice();S.loans.splice(i,1);if(S.lfz)S.lfz.splice(i,1);saveLoans();render()}
 });

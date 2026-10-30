@@ -629,7 +629,7 @@ function renderJump(R){var bid=curBid(R)||"";var uid=R.v==="u"?R.id:"";
   if(R.v==="loans")c+='<span class="sep">›</span><b>이자계산</b>';
   if(bid&&S.b[bid]){c+='<span class="sep">›</span>'+(R.v==="b"?'<b>'+esc(bname(bid))+'</b>':'<a href="#b-'+bid+'">'+esc(bname(bid))+'</a>')}
   if(R.v==="m")c+='<span class="sep">›</span><b>매물장</b>';
-  if(uid&&S.u[uid])c+='<span class="sep">›</span><b>'+esc(S.u[uid].ho)+(S.u[uid].name?' · '+esc(S.u[uid].name):'')+'</b>';
+  if(uid&&S.u[uid])c+='<span class="sep">›</span><b>'+esc(S.u[uid].ho)+'</b>';
   var bo='<option value="">건물 선택</option>'+blist().map(function(b){return '<option value="'+b.id+'"'+(b.id===bid?" selected":"")+'>'+esc(b.name)+'</option>'}).join("");
   var us=bid?ulist(bid):[];
   var uo='<option value="">호실 선택</option>'+us.map(function(u){return '<option value="'+u.id+'"'+(u.id===uid?" selected":"")+'>'+esc(u.ho)+(u.name?" "+esc(u.name):" (공실)")+'</option>'}).join("");

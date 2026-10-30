@@ -532,6 +532,14 @@ function ulist(bid){var bo={};blist().forEach(function(b,i){bo[b.id]=i});
    .sort(function(a,b){return (bo[a.bid]-bo[b.bid])||(hoNum(a.ho)-hoNum(b.ho))||String(a.ho).localeCompare(String(b.ho),"ko")||((a.order||0)-(b.order||0))})}
 function hoNum(h){var m=String(h||"").match(/\d+/);return m?+m[0]:99999}
 function rows(uid){return S.l[uid]||[]}
+/* 입금내역 비고(자동으로 적힌 말 제외)를 호실 비고(memo)로 옮김 */
+function ledNotes(uid){return rows(uid).filter(function(r){var n=(r.note||"").trim();return n&&n!=="자동 청구"&&n!=="추가 입금"}).map(function(r){return r.note.trim()})}
+function moveNotes(uid){var u=S.u[uid];if(!u)return 0;var ns=ledNotes(uid);if(!ns.length){if(!u.notesMoved)saveUnit(uid,{notesMoved:true});return 0}
+  var rs=rows(uid).map(function(r){var n=(r.note||"").trim();if(n&&n!=="자동 청구"&&n!=="추가 입금"){r=Object.assign({},r);r.note=""}return r})
+    .filter(function(r){return r.due||r.rDate||r.mDate||+r.rAmt||+r.mAmt||+r.rent||+r.mgmt||r.note||r.sub});
+  var m=(u.memo||"").trim();saveUnit(uid,{memo:(m?m+"\n":"")+ns.join("\n"),notesMoved:true});S.l[uid]=rs;saveLedger(uid);return ns.length}
+/* 2026-10-30 요청: 이 호실들은 한 번만 자동으로 옮김 (비전동 202·301, 470-5 202, 463-7 301·302·303) */
+function moveNotesOnce(){if(!S.canWrite)return;["b1-202","b1-301","b2-202","b6-301","b6-302","b6-303"].forEach(function(id){var u=S.u[id];if(u&&!u.notesMoved)moveNotes(id)})}
 /* 연락처: 숫자만 적어도 010-0000-0000 모양으로 */
 function fmtPhone(s){s=s==null?"":String(s).trim();if(!s||/[^\d\s\-.()+]/.test(s))return s;var d=s.replace(/\D/g,""),n=d.length;
   if(d.slice(0,2)==="02"){if(n===9)return d.slice(0,2)+"-"+d.slice(2,5)+"-"+d.slice(5);if(n===10)return d.slice(0,2)+"-"+d.slice(2,6)+"-"+d.slice(6)}
@@ -799,12 +807,12 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
    '</div>'+
    '</div>'+
    (u.newContract?nextHtml(u):'')+
-   '<div class="memo-box"><label for="f-unit-'+id+'-memo">비고</label><textarea class="inp memo-ta" id="f-unit-'+id+'-memo" data-f="unit:'+id+':memo" rows="3"'+ro+'>'+esc(u.memo)+'</textarea></div>'+
+   '<div class="memo-box"><label for="f-unit-'+id+'-memo">비고</label><textarea class="inp memo-ta" id="f-unit-'+id+'-memo" data-f="unit:'+id+':memo" rows="'+Math.min(14,Math.max(3,String(u.memo||"").split("\n").length+1))+'"'+ro+'>'+esc(u.memo)+'</textarea></div>'+
    (e&&!u.terminate?'<p class="note">계약기간 '+termOf(u)+'개월(입주일~만기일) 기준으로 '+(isRenewed(u,e)?'묵시적갱신된 ':'')+'현재 만기를 계산합니다. 만기 3개월 전부터 만기 알림에 표시됩니다.'+(u.implied&&u.prevExpiry?' (만기 알림에서 갱신 체크: '+esc(u.prevExpiry)+' → '+esc(u.expiry)+')':'')+'</p>':'')+'</div>';
   var tDue=0,tPaid=0;rs.forEach(function(r){if(rowDue(r)>0)tDue+=rowDue(r);tPaid+=rowPaid(r)});
   h+='<div class="card" id="ledger"><div class="card-h"><h3>월세 및 관리비 입금 현황<span class="sub">'+rs.length+'건</span></h3>'+
    '<button type="button" class="btn sm" data-act="sort">'+(S.asc?"오래된 순":"최신 순")+'</button>'+
-   (S.canWrite?'<button type="button" class="btn sm p" data-act="add-row" data-u="'+id+'">+ 다음 청구</button><button type="button" class="btn sm" data-act="add-blank" data-u="'+id+'">+ 빈 줄</button>':'')+'</div>'+
+   (S.canWrite?'<button type="button" class="btn sm p" data-act="add-row" data-u="'+id+'">+ 다음 청구</button><button type="button" class="btn sm" data-act="add-blank" data-u="'+id+'">+ 빈 줄</button>'+(ledNotes(id).length?'<button type="button" class="btn sm" data-act="move-notes" data-u="'+id+'" data-confirm="비고를 옮길까요?" title="입금내역 비고 칸의 글을 임대 조건 아래 비고로 옮기고 입금내역 비고는 비웁니다">비고 → 호실 비고로 옮기기</button>':''):'')+'</div>'+
    '<div class="sumrow">'+
    (+u.carry?'<div class="sbox"><span class="l">이월 금액</span><span class="n num">'+won(u.carry)+'</span></div>':'')+
    '<div class="sbox'+(x>0&&!underLimit(u,x)?" bad":"")+'"><span class="l">'+(x<0?"선납 (미납 −)":"미납 잔액")+'</span><span class="n num">'+won(x)+(monthsOf(u,x)?' <small style="font-size:13px">('+monthsOf(u,x)+'치)</small>':'')+'</span></div></div>'+autoNote(u)+'<div style="height:10px"></div>';
@@ -1427,6 +1435,7 @@ document.addEventListener("click",function(e){
     var oldL=rows(uid).slice();if(old.name||old.deposit||oldL.length){old.uid=uid;old.bid=cu2.bid;old.ho=cu2.ho;if(oldL.length)old.ledger=oldL;S.dep=(S.dep||[]).concat([old]);saveDep()}
     if(oldL.length){S.l[uid]=[];saveLedger(uid)}
     if(+nx2.payDay)pa.payDay=+nx2.payDay;if(nx2.memo)pa.memo=nx2.memo;saveUnit(uid,pa);render();toast(cu2.ho+" 새 임차인 "+(pa.name||"")+"으로 입주 처리했습니다.")}
+  else if(act==="move-notes"){var nn=moveNotes(uid);render();toast(nn?"비고 "+nn+"줄을 임대 조건 아래 비고로 옮겼습니다.":"옮길 비고가 없습니다.")}
   else if(act==="dep-led"){S.depOpen=S.depOpen===i?null:i;render()}
   else if(act==="dep-del"){S.dep=(S.dep||[]).slice();S.dep.splice(i,1);saveDep();render()}
   else if(act==="plan-apply"){var up=S.u[uid];saveUnit(uid,{moveIn:up.moveInPlan});render();toast(up.ho+" 입주일을 "+up.moveIn+"로 바꿨습니다.")}
@@ -1500,7 +1509,7 @@ function autoBill(force){
 }
 /* ---------- 저장소 연결 ---------- */
 function fail(msg){setSync("err","연결 안 됨");$("#view").innerHTML='<div class="splash"><b>저장소에 연결하지 못했습니다</b>'+esc(msg)+'</div>'}
-function listen(col,key,fn){S.db.collection(col).onSnapshot(function(snap){fn(snap);S.got[key]=1;if(S.got.u&&S.got.l&&!autoRan)setTimeout(function(){autoBill()},400);setSync(busy?"busy":"ok",busy?"저장 중":"저장됨");sched()},function(e){fail("데이터를 읽는 중 문제가 생겼습니다 ("+(e&&e.code)+"). 페이지를 새로 열어 주세요.")})}
+function listen(col,key,fn){S.db.collection(col).onSnapshot(function(snap){fn(snap);S.got[key]=1;if(S.got.u&&S.got.l&&!autoRan){autoRan=true;setTimeout(function(){moveNotesOnce();setTimeout(function(){autoBill(true)},1500)},400)}setSync(busy?"busy":"ok",busy?"저장 중":"저장됨");sched()},function(e){fail("데이터를 읽는 중 문제가 생겼습니다 ("+(e&&e.code)+"). 페이지를 새로 열어 주세요.")})}
 Promise.all([window.claude&&window.claude.use?window.claude.use("db"):Promise.resolve(null),window.claude&&window.claude.use?window.claude.use("user"):Promise.resolve(null)]).then(function(r){
   var db=r[0],user=r[1];
   if(!db){fail("claude.ai에 로그인한 상태에서 이 페이지를 열면 건물·호실·입금내역이 표시되고 바로 수정할 수 있습니다.");return}

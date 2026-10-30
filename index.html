@@ -826,7 +826,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
     h+='</tbody></table></div><p class="note">미납 = 월세 + 관리비 − 입금액 (엑셀과 같은 계산). 월세와 관리비 입금은 한 칸에 함께 적습니다. 청구일이 아직 오지 않은 줄은 <b>예정</b>으로 두고 미납에 넣지 않습니다. 한 청구에 여러 번 나눠 들어온 돈은 <b>+입금</b>으로 줄을 더해 날짜별로 적습니다. 파란 줄은 이번 달, 왼쪽 빨간 선은 기한이 지난 미납입니다.</p>';
   }
   return h+'</div>'}
-function autoState(u){if(u.autoBill===false)return {ok:false,t:"자동 청구 꺼짐"};if(u.terminate&&pd(u.termExpiry||u.expiry)&&pd(u.termExpiry||u.expiry)<=TODAY)return {ok:false,t:"계약 종료("+(u.termExpiry||u.expiry)+")로 자동 청구 안 함"};if(!u.name)return {ok:false,t:"공실이라 자동 청구 안 함"};if(!monthly(u))return {ok:false,t:"월세·관리비가 0이라 자동 청구 안 함"};
+function autoState(u){if(u.autoBill===false)return {ok:false,t:"자동 청구 꺼짐"};if(!u.name)return {ok:false,t:"공실이라 자동 청구 안 함"};if(!monthly(u))return {ok:false,t:"월세·관리비가 0이라 자동 청구 안 함"};
   var rs=rows(u.id),last="";rs.forEach(function(r){if(r.due&&r.due>last)last=r.due});if(!last)return {ok:false,t:"청구 내역이 없어 자동 청구 대기 (첫 줄은 직접 추가)"};
   var gap=Math.round((TODAY-pd(last))/864e5);
   if(gap>92)return {ok:false,t:"마지막 청구("+last+") 후 "+gap+"일이 지나 자동 청구를 멈춤"};
@@ -1479,7 +1479,7 @@ document.addEventListener("click",function(e){
 var autoRan=false;
 function dueRowsFor(u,rs){var last="";rs.forEach(function(r){if(r.due&&r.due>last)last=r.due});if(!last)return [];
   if(Math.round((TODAY-pd(last))/864e5)>92)return [];
-  var out=[],nx=addMonth(last,+u.payDay||0),endD=u.terminate?pd(u.termExpiry||u.expiry):null;
+  var out=[],nx=addMonth(last,+u.payDay||0),endD=null; /* 계약 해지·종료일이 지나도 새 임차인 입주 처리 전까지는 자동 청구 계속(자동 청구를 끈 호실만 멈춤) */
   while(pd(nx)<=TODAY&&out.length<4&&(!endD||pd(nx)<endD)){out.push({due:nx,rent:+u.rent||0,mgmt:+u.mgmt||0,rDate:"",rType:"",rAmt:0,mDate:"",mType:"",mAmt:0,note:"자동 청구"});nx=addMonth(nx,+u.payDay||0)}
   return out}
 function autoBill(force){

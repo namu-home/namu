@@ -812,7 +812,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
   var tDue=0,tPaid=0;rs.forEach(function(r){if(rowDue(r)>0)tDue+=rowDue(r);tPaid+=rowPaid(r)});
   h+='<div class="card" id="ledger"><div class="card-h"><h3>월세 및 관리비 입금 현황<span class="sub">'+rs.length+'건</span></h3>'+
    '<button type="button" class="btn sm" data-act="sort">'+(S.asc?"오래된 순":"최신 순")+'</button>'+
-   (S.canWrite?'<button type="button" class="btn sm p" data-act="add-row" data-u="'+id+'">+ 다음 청구</button><button type="button" class="btn sm" data-act="add-blank" data-u="'+id+'">+ 빈 줄</button>'+(ledNotes(id).length?'<button type="button" class="btn sm" data-act="move-notes" data-u="'+id+'" data-confirm="비고를 옮길까요?" title="입금내역 비고 칸의 글을 임대 조건 아래 비고로 옮기고 입금내역 비고는 비웁니다">비고 → 호실 비고로 옮기기</button>':''):'')+'</div>'+
+   (S.canWrite?'<button type="button" class="btn sm p" data-act="add-row" data-u="'+id+'">+ 다음 청구</button><button type="button" class="btn sm" data-act="add-blank" data-u="'+id+'">+ 빈 줄</button>':'')+'</div>'+
    '<div class="sumrow">'+
    (+u.carry?'<div class="sbox"><span class="l">이월 금액</span><span class="n num">'+won(u.carry)+'</span></div>':'')+
    '<div class="sbox'+(x>0&&!underLimit(u,x)?" bad":"")+'"><span class="l">'+(x<0?"선납 (미납 −)":"미납 잔액")+'</span><span class="n num">'+won(x)+(monthsOf(u,x)?' <small style="font-size:13px">('+monthsOf(u,x)+'치)</small>':'')+'</span></div></div>'+autoNote(u)+'<div style="height:10px"></div>';
@@ -1435,7 +1435,6 @@ document.addEventListener("click",function(e){
     var oldL=rows(uid).slice();if(old.name||old.deposit||oldL.length){old.uid=uid;old.bid=cu2.bid;old.ho=cu2.ho;if(oldL.length)old.ledger=oldL;S.dep=(S.dep||[]).concat([old]);saveDep()}
     if(oldL.length){S.l[uid]=[];saveLedger(uid)}
     if(+nx2.payDay)pa.payDay=+nx2.payDay;if(nx2.memo)pa.memo=nx2.memo;saveUnit(uid,pa);render();toast(cu2.ho+" 새 임차인 "+(pa.name||"")+"으로 입주 처리했습니다.")}
-  else if(act==="move-notes"){var nn=moveNotes(uid);render();toast(nn?"비고 "+nn+"줄을 임대 조건 아래 비고로 옮겼습니다.":"옮길 비고가 없습니다.")}
   else if(act==="dep-led"){S.depOpen=S.depOpen===i?null:i;render()}
   else if(act==="dep-del"){S.dep=(S.dep||[]).slice();S.dep.splice(i,1);saveDep();render()}
   else if(act==="plan-apply"){var up=S.u[uid];saveUnit(uid,{moveIn:up.moveInPlan});render();toast(up.ho+" 입주일을 "+up.moveIn+"로 바꿨습니다.")}

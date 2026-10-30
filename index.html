@@ -129,7 +129,7 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 
 .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0 12px}
 .chip[data-bord]{touch-action:pan-x;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}.chip.dragging{opacity:.75;outline:2px dashed var(--accent);outline-offset:2px;cursor:grabbing}body.bdrag,body.bdrag *{cursor:grabbing!important}body.bdrag .bar.bstick .chips{overflow-x:visible}
-.bar.bstick{position:sticky;top:var(--hubh,62px);z-index:15;background:var(--bg);padding:8px 0;margin-bottom:8px}
+.bar.bstick{position:sticky;top:var(--hubh,62px);z-index:15;background:var(--bg);padding:8px 0;margin-bottom:8px}.bar.bstick.hbar{flex-wrap:wrap;row-gap:6px}.bar.hbar .chips{flex:1 1 100%;min-width:0}@media (max-width:760px){.bar.hbar .legend{display:none}.bar.hbar .search{flex:1 1 140px;min-width:0}}
 @media (max-width:760px){.bar.bstick .chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:100%;padding-bottom:2px}.bar.bstick .chips::-webkit-scrollbar{display:none}.bar.bstick{flex-wrap:nowrap}}
 .chips{display:flex;gap:6px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
 .chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 13px;font-weight:700;font-size:13px;color:var(--fg);white-space:nowrap}
@@ -706,7 +706,7 @@ function viewHome(){
       due=all.filter(function(u){return monthState(u).k==="bad"}).length,interest=loanMonthly();
   var h='%%HSUM%%';
   var bs=blist().filter(function(b){return ulist(b.id).length});
-  h+='<div class="bar"><div class="chips"><button type="button" class="chip'+(S.filter==="all"?" on":"")+'" data-filter="all">전체<em>'+t.n+'</em></button>'+
+  h+='<div class="bar bstick hbar"><div class="chips"><button type="button" class="chip'+(S.filter==="all"?" on":"")+'" data-filter="all">전체<em>'+t.n+'</em></button>'+
    bs.map(function(b){return '<button type="button" class="chip'+(S.filter===b.id?" on":"")+'" data-filter="'+b.id+'">'+esc(b.name)+'<em>'+ulist(b.id).length+'</em></button>'}).join("")+
    '<button type="button" class="chip'+(S.filter==="unpaid"?" on":"")+'" data-filter="unpaid">미납</button>'+
    '<button type="button" class="chip'+(S.filter==="exp"?" on":"")+'" data-filter="exp" title="3개월 안에 만기 또는 계약 해지 종료">만기<em>'+ex.length+'</em></button>'+

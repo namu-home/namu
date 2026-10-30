@@ -976,7 +976,7 @@ function renderImport(){var old=$("#im");if(old)old.remove();if(!IM)return;
 function runImport(){if(!IM||IM.busy)return;var todo=IM.diffs.filter(function(d){return d.k!=="del"||IM.del});IM.busy=true;IM.done=0;renderImport();
   todo.reduce(function(pr,d){return pr.then(function(){var ref=S.db.doc(d.col+"/"+d.id);var w=d.k==="del"?ref.delete():ref.set(JSON.parse(JSON.stringify(d.data)));
       return w.then(function(){if(d.col==="photos")S.ph[d.id]=d.data;IM.done++;var s=$("#im .im-foot span");if(s)s.textContent="가져오는 중… "+IM.done+" / "+todo.length})})},Promise.resolve())
-  .then(function(){var n=IM.done;IM=null;renderImport();toast(n+"건을 가져왔습니다.")},function(e){IM.busy=false;renderImport();toast("가져오는 중 멈췄습니다 ("+IM.done+"건 완료): "+(e&&e.message||e))})}
+  .then(function(){var n=IM.done;IM=null;S.lfz=null;renderImport();toast(n+"건을 가져왔습니다.")},function(e){IM.busy=false;renderImport();toast("가져오는 중 멈췄습니다 ("+IM.done+"건 완료): "+(e&&e.message||e))})}
 /* ---------- 건물 사진 (작게 줄여 데이터베이스에 저장) ---------- */
 S.ph={};
 function loadPhoto(bid){if(!S.db||S.ph[bid]!==undefined&&S.ph[bid]!=="loading")return Promise.resolve(S.ph[bid]);if(S.ph[bid]==="loading")return Promise.resolve(null);S.ph[bid]="loading";
@@ -1445,7 +1445,10 @@ Promise.all([window.claude&&window.claude.use?window.claude.use("db"):Promise.re
   listen("units","u",function(s){var o={};s.docs.forEach(function(d){o[d.id]=Object.assign({id:d.id},d.data())});S.u=o});
   listen("ledgers","l",function(s){var o={};s.docs.forEach(function(d){o[d.id]=(d.data().rows||[]).slice()});S.l=o});
   listen("market","m",function(s){var o={};s.docs.forEach(function(d){o[d.id]=JSON.parse(JSON.stringify(d.data()))});S.m=o});
-  db.doc("meta/loans").onSnapshot(function(d){S.loans=d.exists?(d.data().rows||[]).slice():[];S.got.loans=1;sched()},function(){});
+  db.doc("meta/loans").onSnapshot(function(d){var nl0=d.exists?(d.data().rows||[]).slice():[];
+    /* 다른 곳(가져오기·다른 기기)에서 대출 목록이 바뀌면 묶음 잠금을 풀어 건물별로 다시 묶음 */
+    if(S.lfz&&(nl0.length!==S.loans.length||nl0.some(function(l,i){var o=S.loans[i];return !o||o.bid!==l.bid||o.amount!==l.amount})))S.lfz=null;
+    S.loans=nl0;S.got.loans=1;sched()},function(){});
   db.doc("meta/departed").onSnapshot(function(d){var rs=d.exists?(d.data().rows||[]).slice():[];var keep=rs.filter(depKeep);S.dep=keep;S.got.dep=1;
     if(keep.length!==rs.length&&S.canWrite)saveDep();
     sched()},function(){});

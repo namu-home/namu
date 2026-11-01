@@ -537,9 +537,12 @@ function ledNotes(uid){return rows(uid).filter(function(r){var n=(r.note||"").tr
 function moveNotes(uid){var u=S.u[uid];if(!u)return 0;var ns=ledNotes(uid);if(!ns.length){if(!u.notesMoved)saveUnit(uid,{notesMoved:true});return 0}
   var rs=rows(uid).map(function(r){var n=(r.note||"").trim();if(n&&n!=="자동 청구"&&n!=="추가 입금"){r=Object.assign({},r);r.note=""}return r})
     .filter(function(r){return r.due||r.rDate||r.mDate||+r.rAmt||+r.mAmt||+r.rent||+r.mgmt||r.note||r.sub});
-  var m=(u.memo||"").trim();saveUnit(uid,{memo:(m?m+"\n":"")+ns.join("\n"),notesMoved:true});S.l[uid]=rs;saveLedger(uid);return ns.length}
+  var m=(u.umemo||"").trim();saveUnit(uid,{umemo:(m?m+"\n":"")+ns.join("\n"),notesMoved:true});S.l[uid]=rs;saveLedger(uid);return ns.length}
 /* 2026-10-30 요청: 이 호실들은 한 번만 자동으로 옮김 (비전동 202·301, 470-5 202, 463-7 301·302·303) */
-function moveNotesOnce(){if(!S.canWrite)return;["b1-202","b1-301","b2-202","b6-301","b6-302","b6-303"].forEach(function(id){var u=S.u[id];if(u&&!u.notesMoved)moveNotes(id)})}
+function moveNotesOnce(){if(!S.canWrite)return;["b1-202","b1-301","b2-202","b6-301","b6-302","b6-303"].forEach(function(id){var u=S.u[id];if(!u)return;
+  if(!u.notesMoved){moveNotes(id);return}
+  /* 예전에 전체 현황 비고(memo)로 옮겨진 경우 → 호실 비고(umemo)로 나눔. 470-5 202호는 원래 memo가 '공실' */
+  if(u.umemo==null){var m=String(u.memo||""),keep=id==="b2-202"&&m.indexOf("공실\n")===0?"공실":"";saveUnit(id,{memo:keep,umemo:keep?m.slice(keep.length+1):m})}})}
 /* 연락처: 숫자만 적어도 010-0000-0000 모양으로 */
 function fmtPhone(s){s=s==null?"":String(s).trim();if(!s||/[^\d\s\-.()+]/.test(s))return s;var d=s.replace(/\D/g,""),n=d.length;
   if(d.slice(0,2)==="02"){if(n===9)return d.slice(0,2)+"-"+d.slice(2,5)+"-"+d.slice(5);if(n===10)return d.slice(0,2)+"-"+d.slice(2,6)+"-"+d.slice(6)}
@@ -706,7 +709,7 @@ function qpayHtml(u){if(!S.canWrite||!u.name)return "";var t=payTarget(u);
 function unitCard(u){var ms=monthState(u),x=unpaid(u);
   return '<div class="ucard"><div class="r1"><a class="holink ho" href="#u-'+u.id+'">'+esc(u.ho)+' ›</a><span class="nm">'+(abOff(u)?'<span class="nmwrap">'+nmHtml(u)+abOff(u)+'</span>':nmHtml(u))+'</span><span class="tags">'+planTag(u)+expPill(u,nextExp(u),"만기 ")+(u.terminate?'':expTag(u))+(ms.k==="paid"?'':'<span class="tag '+ms.k+'">'+ms.t+'</span>')+(x>0?'<span class="tag '+(underLimit(u,x)?"etc":"bad")+'">미납 '+won(x)+(monthsOf(u,x)?' · '+monthsOf(u,x):'')+'</span>':'')+'</span></div>'+
   '<div class="r2 num"><span>보증금 <b>'+won(u.deposit)+'</b></span><span>월세+관리비 <b'+(noAuto(u)?' class="noauto" title="자동 청구 안 함 – 직접 청구해야 합니다"':'')+'>'+won((+u.rent||0)+(+u.mgmt||0))+'</b></span>'+(u.payDay?'<span>차임일 <b>'+u.payDay+'일</b></span>':'')+'</div>'+(S.canWrite&&u.name?'<div class="r3q">'+qpayHtml(u)+'</div>':'')+(S.canWrite?'<input class="memo r3" data-f="unit:'+u.id+':memo" value="'+esc(u.memo)+'" placeholder="비고 입력" aria-label="'+esc(u.ho)+' 비고">':(u.memo?'<div class="r2">'+esc(u.memo)+'</div>':''))+'</div>'}
-function matchQ(u){if(!S.q)return true;var q=S.q.toLowerCase();return [u.ho,u.name,u.phone,fmtPhone(u.phone),String(u.phone||"").replace(/\D/g,""),u.memo,bname(u.bid)].join(" ").toLowerCase().indexOf(q)>=0}
+function matchQ(u){if(!S.q)return true;var q=S.q.toLowerCase();return [u.ho,u.name,u.phone,fmtPhone(u.phone),String(u.phone||"").replace(/\D/g,""),u.memo,u.umemo,bname(u.bid)].join(" ").toLowerCase().indexOf(q)>=0}
 function eokMan(n){n=Math.round(+n||0);if(!n)return "0";var neg=n<0;n=Math.abs(n);var e=Math.floor(n/1e8),m=Math.round((n-e*1e8)/1e4);if(m>=10000){e++;m-=10000}var o=(e?e+"억"+(m?" ":""):"")+(m||!e?won(m)+"만":"");return (neg?"-":"")+o}
 function noAuto(u){return !!u.name&&monthly(u)>0&&!autoState(u).ok}
 function viewHome(){
@@ -807,7 +810,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
    '</div>'+
    '</div>'+
    (u.newContract?nextHtml(u):'')+
-   '<div class="memo-box"><label for="f-unit-'+id+'-memo">비고</label><textarea class="inp memo-ta" id="f-unit-'+id+'-memo" data-f="unit:'+id+':memo" rows="'+Math.min(14,Math.max(3,String(u.memo||"").split("\n").length+1))+'"'+ro+'>'+esc(u.memo)+'</textarea></div>'+
+   '<div class="memo-box"><label for="f-unit-'+id+'-umemo">비고</label><textarea class="inp memo-ta" id="f-unit-'+id+'-umemo" data-f="unit:'+id+':umemo" rows="'+Math.min(14,Math.max(3,String(u.umemo||"").split("\n").length+1))+'"'+ro+'>'+esc(u.umemo||"")+'</textarea></div>'+
    (e&&!u.terminate?'<p class="note">계약기간 '+termOf(u)+'개월(입주일~만기일) 기준으로 '+(isRenewed(u,e)?'묵시적갱신된 ':'')+'현재 만기를 계산합니다. 만기 3개월 전부터 만기 알림에 표시됩니다.'+(u.implied&&u.prevExpiry?' (만기 알림에서 갱신 체크: '+esc(u.prevExpiry)+' → '+esc(u.expiry)+')':'')+'</p>':'')+'</div>';
   var tDue=0,tPaid=0;rs.forEach(function(r){if(rowDue(r)>0)tDue+=rowDue(r);tPaid+=rowPaid(r)});
   h+='<div class="card" id="ledger"><div class="card-h"><h3>월세 및 관리비 입금 현황<span class="sub">'+rs.length+'건</span></h3>'+

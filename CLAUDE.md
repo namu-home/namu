@@ -20,7 +20,7 @@
 ## 데이터 구조 (Firestore 컬렉션)
 
 - `buildings/{bid}`: 건물 (name, addr, order, price·loan(만원), rate, land, bldg, gfa, parking, approved(사용승인일), usage(건축물 용도), zone(용도지역), structure(구조), floors(층수), comp, memo, footer, 허그: hugAppr(감정평가액), hugPub(공시가격) — 예전 hugPrice+hugSrc도 읽음, hugDate(감정평가일자), hugPrelim(예비 감정평가 — 실제는 공시가격×140%로 계산, '예비 감정평가로 예상 계산' 버튼으로 예상치 보기), hugLord·hugTen(적용 %, 기본 100·90), hugMort(근저당 채권최고액 합계), hugUnit(계약 호실 uid), hugDep(계약 보증금, 0이면 그 호실 보증금), hugLordIssued·hugLordDate(임대인 보증 발급 여부·발급일), hugMulti(다세대 호실별 계산 — 현화리 290-4), hugRefUnit·hugRefPrice(기준 호실과 그 감정평가금액 → 1㎡당 금액; 다세대면 건물 감정평가액 = 1㎡당 × 전체 면적 합으로 자동))
-- `units/{uid}`: 호실 (bid, ho, order, name, phone, deposit, rent, mgmt, payDay, moveIn, expiry, term, carry, limit, memo, type, autoBill, terminate·termExpiry·termBase·termMode·noticeDate·termRenewed, implied·prevExpiry·origExpiry, newContract·newAt·moveInPlan, foreign(외국인 — 허그 선순위 계산에 최우선변제금 4,800만), area(전용면적 ㎡, 다세대 허그 계산용), next(새 계약 때 들어올 임차인 {name, phone, deposit, rent, mgmt, payDay, expiry, memo} — 호실 화면 '입주 처리'로 지금 임차인 자리에 옮김), prevTenants(옛 형식 — 열면 meta/departed로 옮겨짐), pub(호실 공시가격 — 다세대는 호실별 합이 건물 공시가격, 호실 주택가격 = pub×140%))
+- `units/{uid}`: 호실 (bid, ho, order, name, phone, deposit, rent, mgmt, payDay, moveIn, expiry, term, carry, limit, memo, type, autoBill, terminate·termExpiry·termBase·termMode·noticeDate·termRenewed, implied·prevExpiry·origExpiry, newContract·newAt·moveInPlan, foreign(외국인 — 허그 선순위 계산에 최우선변제금 4,800만), area(전용면적 ㎡, 다세대 허그 계산용), next(새 계약 때 들어올 임차인 {name, phone, deposit, rent, mgmt, payDay, expiry, memo} — 호실 화면 '입주 처리'로 지금 임차인 자리에 옮김), umemo(호실 화면 비고 — 전체 현황 비고 memo와 따로, 전체 현황엔 안 보임), prevTenants(옛 형식 — 열면 meta/departed로 옮겨짐), pub(호실 공시가격 — 다세대는 호실별 합이 건물 공시가격, 호실 주택가격 = pub×140%))
 - `ledgers/{uid}`: `{rows:[{due, rent, mgmt, rDate, rType, rAmt, mDate, mType, mAmt, note, sub?}]}` — 입금은 rDate/rAmt 한 칸에 적음(mDate/mAmt는 옛 자료 호환용), `sub:true` = 위 청구에 딸린 추가 입금 줄
 - `market/{bid}`: 매물장 시세 (price, loan, rate, rows:[{floor, ho, dep, rent, type, note}], footer) — 단위 만원
 - `meta/loans`: `{rows:[{bid, label, bank, amount, rate, rates, kind, loanDate, grace, months, start, memo}]}` 이자계산 (`bid:"etc"` = 기타 대출; kind `int`=이자만 · `eq`=원리금균등 · `pr`=원금균등). **원금 방식**(loanDate 있을 때): amount=최초 원금, loanDate=대출일, grace=거치 개월, months=거치 뒤 상환 횟수 → 대출일부터 달마다 그때 금리로 따라가며 잔액 계산(원리금균등은 금리 바뀌면 남은 원금으로 상환액 다시 계산). rate=처음 금리(소수), rates=[{from, rate}] 금리 변경 내역, extra=[{date, amount}] 원금 추가 상환(중도상환). due=만기일(남은 원금 일시상환 — 남은 원금 칸 아래 표시, 3개월 안이면 Home 다가오는 일정에 "대출 만기"). loanDate 없고 start 있는 줄은 예전 잔액 방식(amount=잔액, months=남은 횟수, start=상환 시작일).
@@ -44,7 +44,7 @@
 
 계약 해지: 남은 기간과 상관없이 terminate 호실은 만기 알림 화면의 **계약 해지 예정** 표(`termCard`)와 전체 현황 **계약 해지** 칩(filter `term`)에 모임. 해지 종료일이 지나면 만기 알림 목록·개수에서는 빠지고(묵시적갱신 없음, 만기일 그대로) 계약 해지 예정 표에만 "종료 n일 지남"으로 남음 → 입주 처리 때 새 임차인 조건으로 바뀜. 만기일이 지난 뒤 해지를 체크하면(묵시적갱신된 것으로 봄) 해지 시점 3가지: termMode `orig`=원래 만기일(u.expiry, 만기 전에 나가기로 한 경우) · `notice`=통지일+3개월 · `expiry`=갱신된 만기일(termBase).
 
-입금내역 비고 옮기기(`moveNotes`, 버튼 없음) — 줄 비고(자동 청구·추가 입금 제외)를 units.memo 끝에 줄바꿈으로 붙이고 비움, units.notesMoved=true. `moveNotesOnce()`가 2026-10-30 요청 6개 호실(b1-202, b1-301, b2-202, b6-301, b6-302, b6-303)을 관리자가 앱을 열 때 한 번 자동 처리.
+입금내역 비고 옮기기(`moveNotes`, 버튼 없음) — 줄 비고(자동 청구·추가 입금 제외)를 units.umemo 끝에 줄바꿈으로 붙이고 비움, units.notesMoved=true. `moveNotesOnce()`가 2026-10-30 요청 6개 호실(b1-202, b1-301, b2-202, b6-301, b6-302, b6-303)을 관리자가 앱을 열 때 한 번 자동 처리(이미 memo로 옮겨졌으면 umemo로 나눔, b2-202는 memo '공실' 유지).
 
 연락처: `fmtPhone()`이 숫자만 적어도 010-0000-0000(02, 10자리, 8자리 대표번호도)으로 바꿔 저장·표시. 글자가 섞이면 그대로 둠.
 

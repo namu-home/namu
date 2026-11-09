@@ -542,7 +542,9 @@ function moveNotes(uid){var u=S.u[uid];if(!u)return 0;var ns=ledNotes(uid);if(!n
 /* 새 계약 표시: 새 임차인 입주일(체크한 날보다 이르면 체크한 날)이 지나면 자동으로 풂. 들어올 임차인 정보가 남아 있거나 입주 예정이면 그대로 */
 function newEnd(u){if(!u.newContract||!u.name)return "";var nx=u.next||{};if(nx.name||+nx.deposit||+nx.rent||u.moveInPlan)return "";var m=u.moveIn||"",a=u.newAt||"";if(!m)return "";return m>a?m:(a||m)}
 function newAutoClear(){if(!S.canWrite)return;var td=fd(TODAY);Object.keys(S.u).forEach(function(k){var u=S.u[k],e=newEnd(u);if(e&&e<td)saveUnit(k,{newContract:false,newAt:""})})}
-function moveNotesOnce(){newAutoClear();if(!S.canWrite)return;["b1-202","b1-301","b2-202","b6-301","b6-302","b6-303"].forEach(function(id){var u=S.u[id];if(!u)return;
+/* 2026-11-09 요청: 현화리 304호 새 임차인에게 예전 임차인 관리비 8만이 남은 것 고침 (한 번만) */
+function fix304(){var u=S.u["b4-304"];if(S.canWrite&&u&&!u.fix304){var p={fix304:true};if(+u.mgmt===80000&&(u.newAt||"")>="2026-11-01")p.mgmt=0;saveUnit("b4-304",p)}}
+function moveNotesOnce(){fix304();newAutoClear();if(!S.canWrite)return;["b1-202","b1-301","b2-202","b6-301","b6-302","b6-303"].forEach(function(id){var u=S.u[id];if(!u)return;
   if(!u.notesMoved){moveNotes(id);return}
   /* 예전에 전체 현황 비고(memo)로 옮겨진 경우 → 호실 비고(umemo)로 나눔. 470-5 202호는 원래 memo가 '공실' */
   if(u.umemo==null){var m=String(u.memo||""),keep=id==="b2-202"&&m.indexOf("공실\n")===0?"공실":"";saveUnit(id,{memo:keep,umemo:keep?m.slice(keep.length+1):m})}})}
@@ -841,7 +843,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
   }
   return h+'</div>'}
 function autoState(u){if(u.autoBill===false)return {ok:false,t:"자동 청구 꺼짐"};if(!u.name)return {ok:false,t:"공실이라 자동 청구 안 함"};if(!monthly(u))return {ok:false,t:"월세·관리비가 0이라 자동 청구 안 함"};
-  var rs=rows(u.id),last="";rs.forEach(function(r){if(r.due&&r.due>last)last=r.due});if(!last)return {ok:false,t:"청구 내역이 없어 자동 청구 대기 (첫 줄은 직접 추가)"};
+  var rs=rows(u.id),last="";rs.forEach(function(r){if(r.due&&r.due>last)last=r.due});if(!last){var f=firstDue(u);if(f)return {ok:true,t:"입주일 "+f+" 첫 청구가 곧 자동으로 들어갑니다 (선납)"};if(u.moveIn&&pd(u.moveIn)>TODAY)return {ok:true,t:"입주일 "+u.moveIn+" 당일에 첫 청구가 자동으로 들어갑니다 (선납)"};return {ok:false,t:"청구 내역이 없어 자동 청구 대기 (첫 줄은 직접 추가)"}}
   var gap=Math.round((TODAY-pd(last))/864e5);
   if(gap>92)return {ok:false,t:"마지막 청구("+last+") 후 "+gap+"일이 지나 자동 청구를 멈춤"};
   if(pd(last)>TODAY)return {ok:true,t:"다음 청구 "+last+" (D-"+Math.round((pd(last)-TODAY)/864e5)+")가 이미 들어가 있음 · 이후 차임일 당일마다 자동 추가"};
@@ -1435,12 +1437,13 @@ document.addEventListener("click",function(e){
   else if(act==="add-pay"){var rs4=S.l[uid]=rows(uid).slice();var at=i+1;while(at<rs4.length&&rs4[at].sub)at++;rs4.splice(at,0,{sub:true,due:"",rent:0,mgmt:0,rDate:fd(TODAY),rType:"",rAmt:0,mDate:"",mType:"",mAmt:0,note:"추가 입금"});saveLedger(uid);render();toast("추가 입금 줄을 넣었습니다. 날짜와 금액을 적어 주세요.")}
   else if(act==="next-apply"){var cu2=S.u[uid],nx2=cu2.next||{};if(!(nx2.name||nx2.deposit||nx2.rent)){toast("새 임차인 정보를 먼저 적어 주세요.");return}
     var old={name:cu2.name||"",phone:cu2.phone||"",deposit:+cu2.deposit||0,rent:+cu2.rent||0,mgmt:+cu2.mgmt||0,moveIn:cu2.moveIn||"",expiry:cu2.expiry||"",out:fd(TODAY)};
-    var pa={name:nx2.name||"",phone:nx2.phone||"",deposit:+nx2.deposit||0,rent:+nx2.rent||0,mgmt:nx2.mgmt!=null&&nx2.mgmt!==""?(+nx2.mgmt||0):(+cu2.mgmt||0),moveIn:cu2.moveInPlan||fd(TODAY),expiry:nx2.expiry||"",term:0,
+    var pa={name:nx2.name||"",phone:nx2.phone||"",deposit:+nx2.deposit||0,rent:+nx2.rent||0,mgmt:+nx2.mgmt||0,moveIn:cu2.moveInPlan||fd(TODAY),carry:0,limit:"",foreign:false,memo:nx2.memo||"",expiry:nx2.expiry||"",term:0,
       terminate:false,termExpiry:"",termBase:"",termMode:"",noticeDate:"",termRenewed:false,implied:false,prevExpiry:"",origExpiry:"",newContract:true,newAt:fd(TODAY),moveInPlan:"",next:{},
       prevTenants:[]};
     var oldL=rows(uid).slice();if(old.name||old.deposit||oldL.length){old.uid=uid;old.bid=cu2.bid;old.ho=cu2.ho;if(oldL.length)old.ledger=oldL;S.dep=(S.dep||[]).concat([old]);saveDep()}
     if(oldL.length){S.l[uid]=[];saveLedger(uid)}
-    if(+nx2.payDay)pa.payDay=+nx2.payDay;if(nx2.memo)pa.memo=nx2.memo;saveUnit(uid,pa);render();toast(cu2.ho+" 새 임차인 "+(pa.name||"")+"으로 입주 처리했습니다.")}
+    pa.payDay=+nx2.payDay||+pa.moveIn.slice(8,10)||+cu2.payDay||0;saveUnit(uid,pa);render();toast(cu2.ho+" 새 임차인 "+(pa.name||"")+"으로 입주 처리했습니다.");
+    setTimeout(function(){autoBill(true)},1500)}
   else if(act==="dep-led"){S.depOpen=S.depOpen===i?null:i;render()}
   else if(act==="dep-del"){S.dep=(S.dep||[]).slice();S.dep.splice(i,1);saveDep();render()}
   else if(act==="plan-apply"){var up=S.u[uid];saveUnit(uid,{moveIn:up.moveInPlan});render();toast(up.ho+" 입주일을 "+up.moveIn+"로 바꿨습니다.")}
@@ -1490,10 +1493,12 @@ document.addEventListener("click",function(e){
 });
 
 /* ---------- 자동 청구: 차임일이 되면 다음 청구 줄 추가 ---------- */
-var autoRan=false;
-function dueRowsFor(u,rs){var last="";rs.forEach(function(r){if(r.due&&r.due>last)last=r.due});if(!last)return [];
-  if(Math.round((TODAY-pd(last))/864e5)>92)return [];
-  var out=[],nx=addMonth(last,+u.payDay||0),endD=null; /* 계약 해지·종료일이 지나도 새 임차인 입주 처리 전까지는 자동 청구 계속(자동 청구를 끈 호실만 멈춤) */
+var autoRan=false,ABH="v"+Math.random().toString(36).slice(2); /* 같은 화면은 같은 잠금 이름 → 입주 처리 직후 다시 청구 가능 */
+function firstDue(u){var m=pd(u.moveIn);return m&&m<=TODAY&&Math.round((TODAY-m)/864e5)<=92?u.moveIn:""}
+function dueRowsFor(u,rs){var last="";rs.forEach(function(r){if(r.due&&r.due>last)last=r.due});
+  /* 청구 줄이 하나도 없으면(새 임차인) 선납이라 입주일에 첫 청구 */
+  var out=[],nx;if(!last){nx=firstDue(u);if(!nx)return []}else{if(Math.round((TODAY-pd(last))/864e5)>92)return [];nx=addMonth(last,+u.payDay||0)}
+  var endD=null; /* 계약 해지·종료일이 지나도 새 임차인 입주 처리 전까지는 자동 청구 계속(자동 청구를 끈 호실만 멈춤) */
   while(pd(nx)<=TODAY&&out.length<4&&(!endD||pd(nx)<endD)){out.push({due:nx,rent:+u.rent||0,mgmt:+u.mgmt||0,rDate:"",rType:"",rAmt:0,mDate:"",mType:"",mAmt:0,note:"자동 청구"});nx=addMonth(nx,+u.payDay||0)}
   return out}
 function autoBill(force){
@@ -1501,7 +1506,7 @@ function autoBill(force){
   var todo=ulist().filter(function(u){return u.name&&u.autoBill!==false&&monthly(u)>0&&dueRowsFor(u,rows(u.id)).length});
   if(!todo.length)return;
   var lease=S.db.doc("meta/autobill");
-  lease.acquire({holder:"v"+Math.random().toString(36).slice(2),ttlMs:60000}).then(function(res){
+  lease.acquire({holder:ABH,ttlMs:60000}).then(function(res){
     if(!res||!res.acquired)return;
     var n=0;
     return todo.reduce(function(pr,u){return pr.then(function(){

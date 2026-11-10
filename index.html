@@ -839,7 +839,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
        '<td><input class="cell d" type="date" data-l="'+k("rDate")+'" value="'+esc(r.rDate)+'"'+ro+' aria-label="입금일"></td><td><input class="cell l" data-l="'+k("rType")+'" value="'+esc(r.rType)+'"'+ro+' aria-label="입금 구분"></td>'+cellN(k("rAmt"),r.rAmt,ro)+
        
        '<td class="num '+(fut?"calc":un>0?"pos":un<0?"neg":"calc")+'">'+(fut?(rowPaid(r)?won(un):'<span class="tag ok">예정</span>'):r.sub?"":rowDue(r)>0?won(un):"")+'</td><td class="num calc">'+won(acc[i])+'</td>'+
-       '<td><input class="cell l w" data-l="'+k("note")+'" value="'+esc(r.note)+'"'+ro+' aria-label="비고"></td>'+
+       '<td><input class="cell l w" data-l="'+k("note")+'" value="'+esc(r.note==="자동 청구"?"":r.note)+'"'+ro+' aria-label="비고"></td>'+
        '<td style="white-space:nowrap">'+(S.canWrite?(r.sub?'':'<button type="button" class="btn sm ghost" data-act="add-pay" data-u="'+id+'" data-i="'+i+'" title="이 청구에 입금 한 건 더 넣기">+입금</button>')+'<button type="button" class="btn sm ghost danger" data-act="del-row" data-u="'+id+'" data-i="'+i+'" data-confirm="삭제?" aria-label="줄 삭제">✕</button>':'')+'</td></tr>'});
     h+='</tbody></table></div><p class="note">미납 = 월세 + 관리비 − 입금액 (엑셀과 같은 계산). 월세와 관리비 입금은 한 칸에 함께 적습니다. 청구일이 아직 오지 않은 줄은 <b>예정</b>으로 두고 미납에 넣지 않습니다. 한 청구에 여러 번 나눠 들어온 돈은 <b>+입금</b>으로 줄을 더해 날짜별로 적습니다. 파란 줄은 이번 달, 왼쪽 빨간 선은 기한이 지난 미납입니다.</p>';
   }
@@ -862,7 +862,7 @@ function saveDep(){var rs=(S.dep||[]).slice();save("meta/departed",function(){re
 function depKeep(o){var d=pd(o.out);return !d||addMonths(d,3)>=TODAY}
 function depLedgerBtn(o,i){var L=o.ledger||[];if(!L.length)return '<span class="muted">–</span>';return '<button type="button" class="btn sm" data-act="dep-led" data-i="'+i+'">'+L.filter(function(r){return !r.sub}).length+'개월 '+(S.depOpen===i?'닫기 ▴':'보기 ▾')+'</button>'}
 function depLedgerHtml(o){var L=o.ledger||[],bill=0,got=0;var tr=L.map(function(r){var b=r.sub?0:(+r.rent||0)+(+r.mgmt||0),g=(+r.rAmt||0)+(+r.mAmt||0);bill+=b;got+=g;
-    return '<tr'+(r.sub?' class="muted"':'')+'><td>'+esc(r.sub?"추가 입금":(r.due||""))+'</td><td class="num">'+(b?won(b):"")+'</td><td>'+esc(r.rDate||r.mDate||"")+'</td><td class="num">'+(g?won(g):"")+'</td><td>'+esc(r.rType||"")+'</td><td>'+esc(r.note||"")+'</td></tr>'}).join("");
+    return '<tr'+(r.sub?' class="muted"':'')+'><td>'+esc(r.sub?"추가 입금":(r.due||""))+'</td><td class="num">'+(b?won(b):"")+'</td><td>'+esc(r.rDate||r.mDate||"")+'</td><td class="num">'+(g?won(g):"")+'</td><td>'+esc(r.rType||"")+'</td><td>'+esc(r.note==="자동 청구"?"":r.note||"")+'</td></tr>'}).join("");
   return '<div class="dep-led"><p class="dep-led-h"><b>'+esc(o.name||"")+'</b> 입금내역 · '+esc(bname(o.bid))+' '+esc(o.ho||"")+'</p><table class="tbl"><thead><tr><th>청구일</th><th>월세+관리비</th><th>입금일</th><th>입금액</th><th>입금 방법</th><th>메모</th></tr></thead><tbody>'+tr+'</tbody><tfoot><tr><td><b>합계</b></td><td class="num"><b>'+won(bill)+'</b></td><td></td><td class="num"><b>'+won(got)+'</b></td><td colspan="2">'+(bill-got>0?'<b class="pos">미납 '+won(bill-got)+'</b>':'다 받음')+'</td></tr></tfoot></table></div>'}
 function departedCard(){var rs=(S.dep||[]).slice().sort(function(a,b){return (b.out||"")<(a.out||"")?-1:1});
   return '<div class="card" id="departed"><div class="card-h"><h3>나간 임차인<span class="sub">퇴실일부터 3개월 보관 뒤 자동 삭제</span></h3></div>'+(rs.length?'<div class="scroller"><table class="tbl"><thead><tr><th>퇴실일</th><th>건물 · 호수</th><th>임차인</th><th>연락처</th><th>보증금</th><th>월세</th><th>관리비</th><th>계약 기간</th><th>입금내역</th><th>삭제 예정</th>'+(S.canWrite?'<th></th>':'')+'</tr></thead><tbody>'+
@@ -1501,7 +1501,7 @@ function dueRowsFor(u,rs){var last="";rs.forEach(function(r){if(r.due&&r.due>las
   /* 청구 줄이 하나도 없으면(새 임차인) 선납이라 입주일에 첫 청구 */
   var out=[],nx;if(!last){nx=firstDue(u);if(!nx)return []}else{if(Math.round((TODAY-pd(last))/864e5)>92)return [];nx=addMonth(last,+u.payDay||0)}
   var endD=null; /* 계약 해지·종료일이 지나도 새 임차인 입주 처리 전까지는 자동 청구 계속(자동 청구를 끈 호실만 멈춤) */
-  while(pd(nx)<=TODAY&&out.length<4&&(!endD||pd(nx)<endD)){out.push({due:nx,rent:+u.rent||0,mgmt:+u.mgmt||0,rDate:"",rType:"",rAmt:0,mDate:"",mType:"",mAmt:0,note:"자동 청구"});nx=addMonth(nx,+u.payDay||0)}
+  while(pd(nx)<=TODAY&&out.length<4&&(!endD||pd(nx)<endD)){out.push({due:nx,rent:+u.rent||0,mgmt:+u.mgmt||0,rDate:"",rType:"",rAmt:0,mDate:"",mType:"",mAmt:0,note:""});nx=addMonth(nx,+u.payDay||0)}
   return out}
 function autoBill(force){
   if(!S.db||!S.canWrite||(autoRan&&!force))return;autoRan=true;

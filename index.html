@@ -541,7 +541,10 @@ function moveNotes(uid){var u=S.u[uid];if(!u)return 0;var ns=ledNotes(uid);if(!n
 /* 2026-10-30 요청: 이 호실들은 한 번만 자동으로 옮김 (비전동 202·301, 470-5 202, 463-7 301·302·303) */
 /* 새 계약 표시: 새 임차인 입주일(체크한 날보다 이르면 체크한 날)이 지나면 자동으로 풂. 들어올 임차인 정보가 남아 있거나 입주 예정이면 그대로 */
 function newEnd(u){if(!u.newContract||!u.name)return "";var nx=u.next||{};if(nx.name||+nx.deposit||+nx.rent||u.moveInPlan)return "";var m=u.moveIn||"",a=u.newAt||"";if(!m)return "";return m>a?m:(a||m)}
-function newAutoClear(){if(!S.canWrite)return;var td=fd(TODAY);Object.keys(S.u).forEach(function(k){var u=S.u[k],e=newEnd(u);if(e&&e<td)saveUnit(k,{newContract:false,newAt:""})})}
+function newAutoClear(){if(!S.canWrite)return;var td=fd(TODAY);Object.keys(S.u).forEach(function(k){var u=S.u[k],e=newEnd(u);if(!e)return;
+  /* 입주 처리로 들어온 임차인(나간 임차인 기록의 퇴실일 = 체크한 날)은 입주일이 되면 바로 풂 */
+  var mv=(S.dep||[]).some(function(d){return d.uid===k&&d.out===u.newAt});
+  if(e<td||(mv&&u.moveIn&&u.moveIn<=td))saveUnit(k,{newContract:false,newAt:""})})}
 /* 2026-11-09 요청: 현화리 304호 새 임차인에게 예전 임차인 관리비 8만이 남은 것 고침 (한 번만) */
 function fix304(){var u=S.u["b4-304"];if(S.canWrite&&u&&!u.fix304){var p={fix304:true};if(+u.mgmt===80000&&(u.newAt||"")>="2026-11-01")p.mgmt=0;saveUnit("b4-304",p)}}
 function moveNotesOnce(){fix304();newAutoClear();if(!S.canWrite)return;["b1-202","b1-301","b2-202","b6-301","b6-302","b6-303"].forEach(function(id){var u=S.u[id];if(!u)return;
@@ -801,7 +804,7 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
    '<section class="usec"><h4>계약 기간</h4>'+kv("입주일","unit:"+id+":moveIn",u.moveIn,ro,0,"","date")+kv("계약 만기","unit:"+id+":expiry",u.expiry,ro,0,"","date")+kv("계약기간","unit:"+id+":term",u.term||termCalc(u),ro,1,"개월")+
      '<div class="kv"><label>현재 만기</label><div class="kv-v">'+(e?(expPill(u,e)||'<b class="num">'+fd(e.date)+'</b>')+' '+expTag(u):'<span class="muted">만기일을 넣어 주세요</span>')+'</div></div></section>'+
    '<div class="chks">'+
-     '<div class="chk'+(u.newContract?' on-new':'')+'"><label class="chk-row"><input type="checkbox" data-newc="'+id+'"'+(u.newContract?" checked":"")+(S.canWrite?"":" disabled")+'><span><b>새 계약</b><small>'+(u.newContract?'새 계약'+(u.newAt?' ('+esc(u.newAt)+' 표시)':'')+(newEnd(u)?' · '+esc(newEnd(u))+' 입주일이 지나면 자동으로 풀립니다':' · 새 임차인 입주 처리 후 입주일이 지나면 자동으로 풀립니다'):'새로 계약하면 체크하세요. 이름이 파란 배경으로 표시됩니다')+'</small></span></label>'+
+     '<div class="chk'+(u.newContract?' on-new':'')+'"><label class="chk-row"><input type="checkbox" data-newc="'+id+'"'+(u.newContract?" checked":"")+(S.canWrite?"":" disabled")+'><span><b>새 계약</b><small>'+(u.newContract?'새 계약'+(u.newAt?' ('+esc(u.newAt)+' 표시)':'')+(newEnd(u)?' · '+esc(newEnd(u))+' 입주일이 지나면 자동으로 풀립니다':' · 새 임차인 입주 처리를 하면 입주일에 자동으로 풀립니다'):'새로 계약하면 체크하세요. 이름이 파란 배경으로 표시됩니다')+'</small></span></label>'+
        (u.newContract?'<div class="new-opt"><div class="topt-d"><label for="mp-'+id+'">입주 예정일</label><input class="inp" type="date" id="mp-'+id+'" data-plan="'+id+'" value="'+esc(u.moveInPlan||"")+'"'+(S.canWrite?"":" disabled")+'>'+planTag(u)+'</div>'+
          '<span class="topt-n">아래 <b>새로 들어올 임차인</b> 칸에 정보를 적으세요.</span></div>':'')+
      '</div>'+
@@ -1440,7 +1443,7 @@ document.addEventListener("click",function(e){
   else if(act==="next-apply"){var cu2=S.u[uid],nx2=cu2.next||{};if(!(nx2.name||nx2.deposit||nx2.rent)){toast("새 임차인 정보를 먼저 적어 주세요.");return}
     var old={name:cu2.name||"",phone:cu2.phone||"",deposit:+cu2.deposit||0,rent:+cu2.rent||0,mgmt:+cu2.mgmt||0,moveIn:cu2.moveIn||"",expiry:cu2.expiry||"",out:fd(TODAY)};
     var pa={name:nx2.name||"",phone:nx2.phone||"",deposit:+nx2.deposit||0,rent:+nx2.rent||0,mgmt:+nx2.mgmt||0,moveIn:cu2.moveInPlan||fd(TODAY),carry:0,limit:"",foreign:false,memo:nx2.memo||"",expiry:nx2.expiry||"",term:0,
-      terminate:false,termExpiry:"",termBase:"",termMode:"",noticeDate:"",termRenewed:false,implied:false,prevExpiry:"",origExpiry:"",newContract:true,newAt:fd(TODAY),moveInPlan:"",next:{},
+      terminate:false,termExpiry:"",termBase:"",termMode:"",noticeDate:"",termRenewed:false,implied:false,prevExpiry:"",origExpiry:"",newContract:(cu2.moveInPlan||"")>fd(TODAY),newAt:fd(TODAY),moveInPlan:"",next:{},
       prevTenants:[]};
     var oldL=rows(uid).slice();if(old.name||old.deposit||oldL.length){old.uid=uid;old.bid=cu2.bid;old.ho=cu2.ho;if(oldL.length)old.ledger=oldL;S.dep=(S.dep||[]).concat([old]);saveDep()}
     if(oldL.length){S.l[uid]=[];saveLedger(uid)}
@@ -1539,6 +1542,7 @@ Promise.all([window.claude&&window.claude.use?window.claude.use("db"):Promise.re
     S.loans=nl0;S.got.loans=1;sched()},function(){});
   db.doc("meta/departed").onSnapshot(function(d){var rs=d.exists?(d.data().rows||[]).slice():[];var keep=rs.filter(depKeep);S.dep=keep;S.got.dep=1;
     if(keep.length!==rs.length&&S.canWrite)saveDep();
+    if(S.got.u&&!S.depCleared){S.depCleared=1;newAutoClear()}
     sched()},function(){});
   db.doc("meta/hug").onSnapshot(function(d){S.hug=d.exists?d.data():null;S.got.hug=1;sched()},function(){});
   db.doc("meta/expenses").onSnapshot(function(d){var x=d.exists?d.data():{};S.exp={rows:(x.rows||[]).slice(),jong:(x.jong||[]).slice()};S.got.exp=1;sched()},function(){});

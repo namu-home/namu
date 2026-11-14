@@ -249,7 +249,7 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .kv-wide{margin-top:12px;border-top:0;grid-template-columns:84px minmax(0,1fr)}
 .chks{display:flex;flex-direction:column;gap:10px;min-width:0}
 .chks .chk{flex:none}
-.memo-box{margin-top:12px;max-width:1268px}
+tr.dup>td{background:var(--hover)!important}tr.dup>td:first-child{box-shadow:inset 4px 0 0 var(--bad)}.dup-w{display:block;font-size:11px;font-weight:700;color:var(--bad);margin-top:2px}.memo-box{margin-top:12px;max-width:1268px}
 .memo-box label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:0 0 4px}
 .memo-ta{display:block;width:100%;height:auto;min-height:84px;padding:8px 12px;line-height:1.5;resize:vertical;text-align:left!important;font:inherit}
 .kv-wide{max-width:1014px}
@@ -834,12 +834,12 @@ function viewUnit(id,ledger){var u=S.u[id];if(!u)return '<div class="card empty"
     var idx=rs.map(function(r,i){return i});var run=+u.carry||0,acc={};idx.forEach(function(i){run+=rowUnpaid(rs[i]);acc[i]=run});
     if(!S.asc)idx.reverse();
     h+='<div class="scroller" data-sk="led"><table class="tbl edit"><thead><tr><th class="l stick">청구일</th><th>월세</th><th>관리비<br>(정산)</th><th class="l">입금일</th><th class="l">구분</th><th>입금액</th><th>미납</th><th>누적</th><th class="l">비고</th><th></th></tr></thead><tbody>';
-    var gnet={},lm=-1;rs.forEach(function(r,i){if(r.sub&&lm>=0)gnet[lm]+=rowUnpaid(r);else{lm=r.sub?-1:i;gnet[i]=rowUnpaid(r)}});
+    var dup=dupRows(id);var gnet={},lm=-1;rs.forEach(function(r,i){if(r.sub&&lm>=0)gnet[lm]+=rowUnpaid(r);else{lm=r.sub?-1:i;gnet[i]=rowUnpaid(r)}});
     idx.forEach(function(i){var r=rs[i],un=gnet[i]!=null?gnet[i]:rowUnpaid(r),cur=(r.due||"").slice(0,7)===YM,late=!r.sub&&un>0&&pd(r.due)&&pd(r.due)<=TODAY,fut=!r.sub&&isFuture(r);
       var k=function(f){return id+"|"+i+"|"+f};
-      h+='<tr class="'+(r.sub?"subrow ":"")+(cur?"cur ":"")+(late?"due-late":"")+'">'+(r.sub?'<td class="l stick"><span class="subl">└ 추가 입금</span></td><td></td><td></td>':'<td class="l stick"><input class="cell d" type="date" data-l="'+k("due")+'" value="'+esc(r.due)+'"'+ro+' aria-label="청구일"></td>'+
+      h+='<tr class="'+(r.sub?"subrow ":"")+(cur?"cur ":"")+(late?"due-late":"")+(dup[i]?" dup":"")+'"'+(dup[i]?' title="같은 날짜·같은 금액 입금이 다른 줄에도 있습니다"':'')+'>'+(r.sub?'<td class="l stick"><span class="subl">└ 추가 입금</span></td><td></td><td></td>':'<td class="l stick"><input class="cell d" type="date" data-l="'+k("due")+'" value="'+esc(r.due)+'"'+ro+' aria-label="청구일"></td>'+
        cellN(k("rent"),r.rent,ro)+cellN(k("mgmt"),r.mgmt,ro))+
-       '<td><input class="cell d" type="date" data-l="'+k("rDate")+'" value="'+esc(r.rDate)+'"'+ro+' aria-label="입금일"></td><td><input class="cell l" data-l="'+k("rType")+'" value="'+esc(r.rType)+'"'+ro+' aria-label="입금 구분"></td>'+cellN(k("rAmt"),r.rAmt,ro)+
+       '<td><input class="cell d" type="date" data-l="'+k("rDate")+'" value="'+esc(r.rDate)+'"'+ro+' aria-label="입금일">'+(dup[i]?'<span class="dup-w">중복?</span>':'')+'</td><td><input class="cell l" data-l="'+k("rType")+'" value="'+esc(r.rType)+'"'+ro+' aria-label="입금 구분"></td>'+cellN(k("rAmt"),r.rAmt,ro)+
        
        '<td class="num '+(fut?"calc":un>0?"pos":un<0?"neg":"calc")+'">'+(fut?(rowPaid(r)?won(un):'<span class="tag ok">예정</span>'):r.sub?"":rowDue(r)>0?won(un):"")+'</td><td class="num calc">'+won(acc[i])+'</td>'+
        '<td><input class="cell l w" data-l="'+k("note")+'" value="'+esc(r.note==="자동 청구"?"":r.note)+'"'+ro+' aria-label="비고"></td>'+
@@ -945,9 +945,14 @@ function addPayment(uid,date,amt){var u=S.u[uid];var rs=S.l[uid]=rows(uid).slice
     if(!r.rDate&&!(+r.rAmt)&&!(+r.mAmt)){r.rDate=date;r.rAmt=amt;rs[t.i]=r;msg=t.due+" 청구의 입금으로 기록"}
     else{var at=t.i+1;while(at<rs.length&&rs[at].sub)at++;rs.splice(at,0,{sub:true,due:"",rent:0,mgmt:0,rDate:date,rType:"",rAmt:amt,mDate:"",mType:"",mAmt:0,note:"추가 입금"});msg=t.due+" 청구에 추가 입금으로 기록"}}
   saveLedger(uid);toast(u.ho+" "+won(amt)+"원 · "+msg)}
+/* 같은 날짜·같은 금액 입금이 두 번 적혔는지 */
+function dupRows(uid){var rs=rows(uid),seen={},d={};rs.forEach(function(r,i){var a=+r.rAmt||0;if(!r.rDate||!a)return;var key=r.rDate+"|"+a;if(seen[key]!=null){d[i]=1;d[seen[key]]=1}else seen[key]=i});return d}
+function dupWarn(uid,date,amt){if(!date||!amt)return false;var n=rows(uid).filter(function(r){return r.rDate===date&&+r.rAmt===amt}).length;return n}
 function submitQpay(uid){var a=$("#qa-"+uid),d=$("#qd-"+uid);if(!a)return;var amt=toNum(a.value);
   if(!amt){toast("입금액을 적어 주세요.");a.focus();return}
-  var date=(d&&d.value)||fd(TODAY);a.value="";if(document.activeElement)document.activeElement.blur();addPayment(uid,date,amt);render()}
+  var date=(d&&d.value)||fd(TODAY);
+  if(dupWarn(uid,date,amt)&&!confirm(date+" "+won(amt)+"원 입금이 이미 적혀 있습니다.\n두 번 적은 게 아니면 [확인]을 눌러 하나 더 넣으세요.")){a.focus();return}
+  a.value="";if(document.activeElement)document.activeElement.blur();addPayment(uid,date,amt);render()}
 document.addEventListener("keydown",function(e){var u=e.target.getAttribute&&e.target.getAttribute("data-qa");if(u&&e.key==="Enter"){e.preventDefault();submitQpay(u)}});
 /* ---------- 단독 파일 가져오기 ---------- */
 var IM=null;
@@ -1365,7 +1370,9 @@ document.addEventListener("change",function(e){var t=e.target,a;
     else{saveUnit(a,{expiry:u.prevExpiry,prevExpiry:"",implied:false,renewedAt:""});toast(u.ho+" 갱신 체크를 풀었습니다. 만기 "+u.expiry)}
     t.blur();render();return}
   if((a=t.getAttribute("data-l"))){var q=a.split("|"),uid=q[0],i=+q[1],f2=q[2];var rs=S.l[uid]=rows(uid).slice();var r=Object.assign({},rs[i]);
-    r[f2]=t.getAttribute("data-n")?toNum(t.value):t.value;rs[i]=r;saveLedger(uid);sched();return}
+    r[f2]=t.getAttribute("data-n")?toNum(t.value):t.value;rs[i]=r;saveLedger(uid);
+    if((f2==="rDate"||f2==="rAmt")&&dupRows(uid)[i])toast("⚠ "+r.rDate+" "+won(r.rAmt)+"원 입금이 다른 줄에도 있습니다. 두 번 적지 않았는지 확인해 주세요.");
+    sched();return}
   if((a=t.getAttribute("data-mk"))){var q2=a.split("|"),bid=q2[0],i2=+q2[1],f3=q2[2];ensureMk(bid);var r2=Object.assign({},S.m[bid].rows[i2]);
     r2[f3]=t.getAttribute("data-n")?toNum(t.value):t.value;S.m[bid].rows[i2]=r2;saveMarket(bid);sched();return}
   if((a=t.getAttribute("data-ln"))){var q3=a.split("|"),i3=+q3[0],f4=q3[1];var l=Object.assign({},S.loans[i3]);

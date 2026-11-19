@@ -249,7 +249,7 @@ button.kpi:hover{background:rgba(255,255,255,.2)}
 .kv-wide{margin-top:12px;border-top:0;grid-template-columns:84px minmax(0,1fr)}
 .chks{display:flex;flex-direction:column;gap:10px;min-width:0}
 .chks .chk{flex:none}
-tr.dup>td{background:var(--hover)!important}tr.dup>td:first-child{box-shadow:inset 4px 0 0 var(--bad)}.dup-w{display:block;font-size:11px;font-weight:700;color:var(--bad);margin-top:2px}.dup-ok{margin-top:3px;font-size:11px;padding:2px 6px}.memo-box{margin-top:12px;max-width:1268px}
+tr.dup>td{background:var(--hover)!important}tr.dup>td:first-child{box-shadow:inset 4px 0 0 var(--bad)}.dup-w{display:block;font-size:11px;font-weight:700;color:var(--bad);margin-top:2px}.dup-ok{margin-top:3px;font-size:11px;padding:2px 6px}.bdocs{border-top:1px solid var(--line2);margin-top:14px;padding-top:12px}.bdocs-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.bdocs-h .muted{font-size:12px}.bdocs-h .btn{margin-left:auto}.bdocs-l{list-style:none;margin:8px 0 0;padding:0}.bdocs-l li{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:7px 0;border-bottom:1px solid var(--line2)}.bdocs-l .dn{font-weight:600;word-break:break-all}.bdocs-l .muted{font-size:12px}.bdocs-l li{flex-wrap:nowrap}.bdocs-l .di{flex:1;min-width:0}.bdocs-l li .btn{flex:0 0 auto}.memo-box{margin-top:12px;max-width:1268px}
 .memo-box label{display:block;font-size:13px;font-weight:700;color:var(--muted);margin:0 0 4px}
 .memo-ta{display:block;width:100%;height:auto;min-height:84px;padding:8px 12px;line-height:1.5;resize:vertical;text-align:left!important;font:inherit}
 .kv-wide{max-width:1014px}
@@ -777,7 +777,7 @@ function viewBld(id){var b=S.b[id];if(!b)return '<div class="card empty">건물�
       kv("연면적","bld:"+id+":gfa",b.gfa,ro)+kv("주차대수","bld:"+id+":parking",b.parking,ro)+kv("사용승인일","bld:"+id+":approved",b.approved,ro,0,"","date")+kv("건축물 용도","bld:"+id+":usage",b.usage,ro)+
       kv("용도지역","bld:"+id+":zone",b.zone,ro)+kv("구조","bld:"+id+":structure",b.structure,ro)+kv("층수","bld:"+id+":floors",b.floors,ro)+kv("세대 현황","bld:"+id+":comp",b.comp,ro)+
       '<div class="kv"><label for="f-bld-'+id+'-memo">메모</label><div class="kv-v"><textarea class="inp memo-ta" rows="2" id="f-bld-'+id+'-memo" data-f="bld:'+id+':memo"'+ro+'>'+esc(b.memo||"")+'</textarea></div></div></div>'+
-  '</div></div>';
+  '</div>'+docsHtml(id)+'</div>';
   var uadd=S.canWrite?'<button type="button" class="btn sm plus-btn" data-act="add-unit" data-b="'+id+'" title="호실 추가" aria-label="호실 추가">+</button>':'';
   if(us.length){
     h+='<div class="card-h only-narrow uhead"><h3>호실 현황</h3>'+uadd+'</div>';
@@ -1041,6 +1041,46 @@ function uploadPhoto(bid){var inp=document.createElement("input");inp.type="file
   inp.onchange=function(){var f=inp.files&&inp.files[0];inp.remove();if(!f)return;toast("사진을 줄이는 중입니다…");
     shrinkImage(f).then(function(o){o.at=fd(TODAY);S.ph[bid]=o;render();save("photos/"+bid,function(){return S.db.doc("photos/"+bid).set(o).then(function(){toast("건물 사진을 저장했습니다 ("+Math.round(o.data.length*0.75/1024)+"KB)")})})},function(e){toast(e.message||"사진을 올리지 못했습니다")})};
   inp.click()}
+/* ---------- 건물 서류 첨부 (감정평가서 등) ----------
+   목록: meta/docs {rows:[{id,bid,name,type,size,parts,at}]}, 파일: files/{id}_{k} {d: data URI 조각(90만 자)} — Storage 없이 Firestore에 나눠 저장 */
+var DOC_CH=900000;
+function docsOf(bid){return (S.docs||[]).filter(function(d){return d.bid===bid}).sort(function(a,b){return (b.at||"")<(a.at||"")?-1:1})}
+function kb(n){return n>=1048576?(n/1048576).toFixed(1)+"MB":Math.max(1,Math.round(n/1024))+"KB"}
+function docsHtml(bid){var ds=docsOf(bid);
+  return '<div class="bdocs"><div class="bdocs-h"><b>서류</b><span class="muted">감정평가서 등 · 버튼으로 다시 내려받기</span>'+(S.canWrite?'<button type="button" class="btn sm" data-act="doc-up" data-b="'+bid+'">📎 첨부</button>':'')+'</div>'+
+    (ds.length?'<ul class="bdocs-l">'+ds.map(function(d){return '<li><span class="di"><span class="dn">'+(d.type==="application/pdf"?"📄":"🖼")+' '+esc(d.name)+'</span> <span class="muted">'+esc(d.at||"")+' · '+kb(d.size||0)+'</span></span>'+
+      '<button type="button" class="btn sm" data-act="doc-dl" data-i="'+esc(d.id)+'">⤓ 내려받기</button>'+(S.canWrite?'<button type="button" class="btn sm ghost danger" data-act="doc-del" data-i="'+esc(d.id)+'" data-confirm="이 서류를 지울까요?">✕</button>':'')+'</li>'}).join("")+'</ul>'
+     :'<p class="note">첨부한 서류가 없습니다.</p>')+'</div>'}
+function saveDocs(){var rs=(S.docs||[]).slice();save("meta/docs",function(){return S.db.doc("meta/docs").set({rows:rs})})}
+function readURL(f){return new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(fr.result)};fr.onerror=function(){rej(fr.error)};fr.readAsDataURL(f)})}
+/* 서류 사진은 글씨가 보이게 크게(최대 2200px), 약 1.5MB 안으로 */
+function shrinkDoc(f){return readURL(f).then(function(u){return new Promise(function(res,rej){var img=new Image();img.onload=function(){
+    var tries=[[2200,0.82],[1900,0.78],[1600,0.74],[1300,0.7]];
+    for(var i=0;i<tries.length;i++){var sc=Math.min(1,tries[i][0]/Math.max(img.width,img.height)),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
+      var cv=document.createElement("canvas");cv.width=w;cv.height=h;var cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,w,h);cx.drawImage(img,0,0,w,h);
+      var d=cv.toDataURL("image/jpeg",tries[i][1]);if(d.length<2000000||i===tries.length-1){res(d);return}}};
+    img.onerror=function(){rej(new Error("그림 파일을 읽지 못했습니다"))};img.src=u})})}
+function uploadDoc(bid){var inp=document.createElement("input");inp.type="file";inp.accept="image/*,application/pdf";inp.multiple=true;inp.hidden=true;document.body.appendChild(inp);
+  inp.onchange=function(){var fs=[].slice.call(inp.files||[]);inp.remove();fs.reduce(function(p,f){return p.then(function(){return addDoc(bid,f)})},Promise.resolve())};
+  inp.click()}
+function addDoc(bid,f){var pdf=f.type==="application/pdf"||/\.pdf$/i.test(f.name),img=/^image\//.test(f.type);
+  if(!pdf&&!img){toast(f.name+": 사진이나 PDF만 첨부할 수 있습니다.");return Promise.resolve()}
+  if(pdf&&f.size>6*1048576){toast(f.name+": PDF가 너무 큽니다(6MB까지).");return Promise.resolve()}
+  toast(f.name+" 올리는 중…");
+  return (pdf?readURL(f):shrinkDoc(f)).then(function(data){var id="d"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),parts=Math.ceil(data.length/DOC_CH),
+      name=pdf?f.name:f.name.replace(/\.[^.]+$/,"")+".jpg",row={id:id,bid:bid,name:name,type:pdf?"application/pdf":"image/jpeg",size:Math.round(data.length*0.75),parts:parts,at:fd(TODAY)};
+    var ps=[];for(var k=0;k<parts;k++)(function(k){ps.push(S.db.doc("files/"+id+"_"+k).set({d:data.slice(k*DOC_CH,(k+1)*DOC_CH)}))})(k);
+    return Promise.all(ps).then(function(){S.docs=(S.docs||[]).concat([row]);saveDocs();render();toast(name+" 첨부했습니다 ("+kb(row.size)+")")})
+  }).catch(function(e){toast("첨부하지 못했습니다: "+(e&&e.message||e))})}
+function docGet(d){var ps=[];for(var k=0;k<(d.parts||1);k++)ps.push(S.db.doc("files/"+d.id+"_"+k).get());
+  return Promise.all(ps).then(function(xs){return xs.map(function(x){return x.exists?x.data().d:""}).join("")})}
+function docDownload(id){var d=(S.docs||[]).find(function(x){return x.id===id});if(!d)return;toast("내려받는 중…");
+  docGet(d).then(function(u){var bin=atob(u.split(",")[1]),a=new Uint8Array(bin.length);for(var i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);
+    var blob=new Blob([a],{type:d.type});return window.claude.use("downloads").then(function(dl){if(!dl){toast("이 화면에서는 파일 저장을 쓸 수 없습니다.");return}
+      return dl.save({filename:d.name,data:blob}).then(function(){toast(d.name+" 저장")},function(e){if(e&&e.code!=="declined")toast("저장하지 못했습니다: "+(e.message||e.code))})})
+  }).catch(function(){toast("서류를 불러오지 못했습니다. 잠시 후 다시 눌러 주세요.")})}
+function docDelete(id){var d=(S.docs||[]).find(function(x){return x.id===id});if(!d)return;S.docs=S.docs.filter(function(x){return x.id!==id});saveDocs();
+  for(var k=0;k<(d.parts||1);k++)(function(k){save("files/"+d.id+"_"+k,function(){return S.db.doc("files/"+d.id+"_"+k).delete()})})(k);render();toast(d.name+" 지웠습니다.")}
 /* ---------- 인쇄용 매물장 (엑셀 양식) ---------- */
 var PM=null;
 /* 허그 계산 인쇄용 (엑셀 양식) */
@@ -1474,6 +1514,9 @@ document.addEventListener("click",function(e){
   else if(act==="imp-close"){if(!(IM&&IM.busy)){IM=null;renderImport()}}
   else if(act==="imp-go"){runImport()}
   else if(act==="ph-up"){uploadPhoto(bid)}
+  else if(act==="doc-up"){uploadDoc(bid)}
+  else if(act==="doc-dl"){docDownload(el.getAttribute("data-i"))}
+  else if(act==="doc-del"){docDelete(el.getAttribute("data-i"))}
   else if(act==="ph-del"){S.ph[bid]=null;save("photos/"+bid,function(){return S.db.doc("photos/"+bid).delete()});render();toast("건물 사진을 지웠습니다.")}
   else if(act==="print"){openPrint(bid,el.getAttribute("data-k"))}
   else if(act==="pm-close"){PM=null;renderPrint()}
@@ -1558,6 +1601,7 @@ Promise.all([window.claude&&window.claude.use?window.claude.use("db"):Promise.re
     /* 다른 곳(가져오기·다른 기기)에서 대출 목록이 바뀌면 묶음 잠금을 풀어 건물별로 다시 묶음 */
     if(S.lfz&&(nl0.length!==S.loans.length||nl0.some(function(l,i){var o=S.loans[i];return !o||o.bid!==l.bid||o.amount!==l.amount})))S.lfz=null;
     S.loans=nl0;S.got.loans=1;sched()},function(){});
+  db.doc("meta/docs").onSnapshot(function(d){S.docs=d.exists?(d.data().rows||[]).slice():[];sched()},function(){});
   db.doc("meta/departed").onSnapshot(function(d){var rs=d.exists?(d.data().rows||[]).slice():[];var keep=rs.filter(depKeep);S.dep=keep;S.got.dep=1;
     if(keep.length!==rs.length&&S.canWrite)saveDep();
     if(S.got.u&&!S.depCleared){S.depCleared=1;newAutoClear()}

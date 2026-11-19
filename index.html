@@ -303,6 +303,19 @@ label.chk{flex-direction:row;gap:12px;align-items:flex-start}
 .pm-opt{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--line2);font-size:13px;color:var(--muted)}
 .pm-opt .inp{height:32px;width:260px;max-width:100%}
 .pm-body{overflow:auto;background:var(--surface2);padding:16px}
+.confsheet{font-family:"Malgun Gothic","Noto Sans KR",sans-serif;padding:46px 56px}.confsheet p{margin:0}
+.cf-form{font-size:14px;margin-bottom:22px!important}.cf-form b{font-family:"Batang","Noto Serif KR",serif}
+.cf-t{font-size:32px!important;letter-spacing:1.1em!important;padding-left:1.1em!important;margin:0 auto 20px!important;width:max-content;border-bottom:2px solid #111;line-height:1.25}
+.cf-sec{font-size:16px;font-weight:700;letter-spacing:.06em;margin-bottom:26px!important}.cf-addr{font-size:16px;font-weight:700;letter-spacing:.06em;margin:0 0 22px 10px!important}
+.confsheet .cf-tbl th{background:#dfe5f1;font-size:15px;height:34px;letter-spacing:.06em}.confsheet .cf-tbl td{height:41px;font-size:13px;padding:2px 6px;white-space:normal}
+.cf-tbl td.cf-ho{text-align:right;padding-right:12px}.cf-tbl td.cf-big{font-size:15px}.cf-tbl td.cf-per{font-size:12.5px;line-height:1.45}.cf-tbl td.cf-dep{text-align:left;padding-left:14px;font-size:13px}
+.cf-gap{display:inline-block;min-width:48px;text-align:right;margin-right:3px}.cf-tbl td.cf-dep{white-space:nowrap!important}
+.cf-body{font-size:15.5px;line-height:2.05;text-indent:2.2em;text-align:justify;margin-top:4px!important}.cf-b1{margin-top:30px!important}
+.cf-date{text-align:center;font-size:15.5px;margin:46px 0 22px!important}.cf-dg{display:inline-block;width:58px}
+.confsheet .cf-who th,.confsheet .cf-who td{border-color:#9aa6c0;height:36px;white-space:normal;font-size:14px;padding:2px 5px}.confsheet .cf-who th{background:#eef1f8;font-weight:500}
+.cf-who th.cf-v{line-height:1.9}.cf-who .cf-sm{font-size:12px!important;line-height:1.25}.cf-who td.cf-2l{line-height:1.35}.cf-who td.cf-nm{position:relative}.cf-in{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:13px}
+.cf-note1{font-size:14px;margin:8px 0 34px 6px!important}.cf-to{font-size:25px;font-weight:700;margin:0 0 6px!important;letter-spacing:.03em}.cf-note{font-size:14px;margin:6px 0 0 6px!important}
+.cf-ed{display:inline-block;min-width:3em;min-height:1.1em;outline:none;border-radius:3px}#pm .cf-ed[contenteditable="true"]{box-shadow:inset 0 -1px 0 #9bb}#pm .cf-ed:focus{background:#fff6c8}#pm.exporting .cf-ed{box-shadow:none!important;background:none!important}
 .sheet{--paper:#ffffff;--ink:#111111;--rule:#222222;--head:#e9e4ee;--soft:#f6f3f8;width:794px;min-height:1050px;margin:0 auto;background:var(--paper);color:var(--ink);padding:44px 40px;font-family:"Malgun Gothic","Noto Sans KR",sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.12)}
 .sheet h2{text-align:center;font-size:30px;letter-spacing:.6em;margin:0 0 4px;padding-left:.6em;font-weight:800}
 .sheet .unit{text-align:right;font-size:12px;margin:0 0 6px}
@@ -1116,7 +1129,41 @@ function hugSheet(bid){var b=S.b[bid];if(!b)return "";var c=hugCalc(bid),sd=c.sd
     (hugPub(b)?'공시가격 '+won(hugPub(b))+' × 140% = '+won(hugPub(b)*1.4)+'<br>':'')+
     '외국인·101호 외 공실은 '+won(HUG_FRN)+'원, 101호 공실은 '+won(HUG_101)+'원으로 넣었습니다. 참고용이며 실제 심사 결과와 다를 수 있습니다.</p></div>';
   return h}
-function sheetHtml(bid,kind){if(kind==="hug")return hugSheet(bid);var b=S.b[bid];if(!b)return "";var m=S.m[bid]||{price:b.price,loan:b.loan,rate:b.rate,rows:[]};
+document.addEventListener("focusout",function(e){var t=e.target;if(!t||!t.getAttribute)return;var k=t.getAttribute("data-hf"),sd=t.getAttribute("data-sd");
+  if(k){var v=t.innerText.replace(/\s+$/,"").replace(/^\s+/,"");if((S.hf||{})[k]===v)return;S.hf=Object.assign({},S.hf||{});S.hf[k]=v;var o=Object.assign({},S.hf);save("meta/hugform",function(){return S.db.doc("meta/hugform").set(o)})}
+  else if(t.getAttribute("data-ca")){var cb=t.getAttribute("data-ca"),cv=t.innerText.trim();if(S.b[cb]&&(S.b[cb].confAddr||"")!==cv)saveBld(cb,{confAddr:cv})}
+  else if(sd&&S.u[sd]){var d=cfDate(t.innerText);if(t.innerText.trim()&&!d){toast("계약체결일은 2026.01.24처럼 적어 주세요.");return}if((S.u[sd].signDate||"")!==d)saveUnit(sd,{signDate:d});t.textContent=cfDot(d)}});
+/* ---------- 허그 확인서 [별지서식 제C03-02호] — 양식 그대로, 건물마다 채움 ----------
+   임대인·공인중개업자 칸은 meta/hugform (한 번 적으면 모든 건물에 씀), 계약체결일은 units.signDate. 칸을 눌러 고칠 수 있음 */
+function cfDot(d){return d?String(d).replace(/-/g,"."):""}
+function cfDate(v){v=String(v||"").replace(/[^0-9]/g,"");return v.length===8?v.slice(0,4)+"-"+v.slice(4,6)+"-"+v.slice(6,8):""}
+function cfDep(v){v=+v||0;if(!v)return '억 <span class="cf-gap"></span> 만원';var e=Math.floor(v/1e8),m=Math.round((v%1e8)/1e4);return (e?e:"")+'억 <span class="cf-gap">'+(m||"")+'</span> 만원'}
+function cfE(key,val,cls){return '<span class="cf-ed'+(cls?" "+cls:"")+'" contenteditable="'+(S.canWrite?"true":"false")+'" spellcheck="false" data-hf="'+key+'">'+esc(val||"")+'</span>'}
+function confRows(bid){var b=S.b[bid];return ulist(bid).filter(function(u){return u.name||u.id===b.hugUnit})}
+function confSheet(bid){var b=S.b[bid];if(!b)return "";var f=S.hf||{},rs=confRows(bid),pages=[];for(var i=0;i<Math.max(rs.length,1);i+=5)pages.push(rs.slice(i,i+5));
+  var addr=b.confAddr||((b.addr||b.name)+(/\d$/.test(b.addr||b.name)?"번지":""));
+  return pages.map(function(pg,pi){var rows=pg.map(function(u){var me=u.id===b.hugUnit;
+      return '<tr><td class="cf-ho">'+esc(String(u.ho||"").replace(/\s*호$/,""))+' 호</td>'+
+        '<td class="cf-big">'+(me?'':'<span class="cf-ed" contenteditable="'+(S.canWrite?"true":"false")+'" spellcheck="false" data-sd="'+u.id+'">'+esc(cfDot(u.signDate))+'</span>')+'</td>'+
+        '<td class="cf-per">'+(me||!u.moveIn?'':esc(cfDot(u.moveIn))+'<br>~'+esc(cfDot(u.expiry)))+'</td>'+
+        '<td class="cf-dep">'+(me?cfDep(0):cfDep(u.deposit))+'</td><td class="cf-big">'+(me?'':esc(u.name||""))+'</td><td class="cf-big">'+(me?'계약호실':u.foreign?'외국인':'')+'</td></tr>'}).join("");
+    for(var k=pg.length;k<5;k++)rows+='<tr><td class="cf-ho">호</td><td></td><td></td><td class="cf-dep">'+cfDep(0)+'</td><td></td><td></td></tr>';
+    return '<div class="sheet confsheet"'+(pi===0?' id="sheet"':'')+'>'+
+      '<p class="cf-form"><b>[별지서식 제C03-02호]</b> (제17조 관련)</p><h2 class="cf-t">확 인 서</h2>'+
+      '<p class="cf-sec">□ 임대차계약 현황(주택 및 상가 모두 기재)</p><p class="cf-addr">주소지 : <span class="cf-ed" contenteditable="'+(S.canWrite?"true":"false")+'" spellcheck="false" data-ca="'+bid+'">'+esc(addr)+'</span></p>'+
+      '<table class="cf-tbl"><colgroup><col style="width:14%"><col style="width:19%"><col style="width:18%"><col style="width:18%"><col style="width:16%"><col style="width:15%"></colgroup>'+
+      '<tr><th>구 분</th><th>계약체결일</th><th>계약기간</th><th>보증금</th><th>임차인 성명</th><th>기 타</th></tr>'+rows+'</table>'+
+      '<p class="cf-body cf-b1">본인은 상기 주택(상가)의 임대인(또는 임대차계약 체결을 중개한 공인중개업자)으로서 위 확인내용이 사실과 동일함을 확인하며, 허위 확인으로 인하여 귀 공사에 손해가 발생하거나 증가할 경우에는 일체의 책임을 이의 없이 부담하겠습니다.</p>'+
+      '<p class="cf-body">또한, 향후 공사의 보증거절 대상자로 등록되는 등의 불이익이 있는 경우에도 이의제기하지 않을 것임을 확인합니다.</p>'+
+      '<p class="cf-date">'+TODAY.getFullYear()+'년<span class="cf-dg"></span>'+(TODAY.getMonth()+1)+'월<span class="cf-dg"></span>'+TODAY.getDate()+'일</p>'+
+      '<table class="cf-who"><colgroup><col style="width:7%"><col style="width:12%"><col style="width:13%"><col style="width:26%"><col style="width:11%"><col style="width:31%"></colgroup>'+
+      '<tr><th rowspan="4" class="cf-v">확<br>인<br>자</th><th rowspan="2">임대인</th><th>성명</th><td class="cf-nm">'+cfE("lName",f.lName)+'<span class="cf-in">(인)</span></td><th class="cf-sm">주민등록<br>번호</th><td>'+cfE("lRrn",f.lRrn)+'</td></tr>'+
+      '<tr><th>주소</th><td class="cf-2l">'+cfE("lAddr",f.lAddr)+'</td><th>연락처</th><td>'+cfE("lPhone",f.lPhone)+'</td></tr>'+
+      '<tr><th rowspan="2">공인중개<br>업자</th><th>상호(성명)</th><td>'+cfE("bName",f.bName)+'</td><th class="cf-sm">주소</th><td class="cf-2l cf-sm">'+cfE("bAddr",f.bAddr)+'</td></tr>'+
+      '<tr><th>등록번호</th><td>'+cfE("bReg",f.bReg)+'</td><th>대표자</th><td class="cf-nm">'+cfE("bRep",f.bRep)+'<span class="cf-in">(인)</span></td></tr></table>'+
+      '<p class="cf-note1">※ 임대인 또는 임대차계약 체결을 중개한 공인중개업자의 확인을 받을 것</p>'+
+      '<p class="cf-to">주택도시보증공사 귀중</p><p class="cf-note">※ 날인은 임대차계약서상 날인 또는 인감증명서(본인 서명확인서)상 인감(서명)과 동일할 것</p><p class="cf-note">※ 공인중개업자 확인시 “중개사무소등록증(사본)” 제출할 것</p></div>'}).join('<div style="height:18px"></div>')}
+function sheetHtml(bid,kind){if(kind==="hug")return hugSheet(bid);if(kind==="conf")return confSheet(bid);var b=S.b[bid];if(!b)return "";var m=S.m[bid]||{price:b.price,loan:b.loan,rate:b.rate,rows:[]};
   var src=kind==="mk"?m:b,rs=kind==="mk"?(m.rows||[]):curRows(bid),c=calc(src.price,src.loan,src.rate,rs);
   var f1=function(v){return (+v)?man(v):""},ph=S.ph[bid];
   var right=[["보증금 합계",man(c.dep)],["월세 합계",man(c.rent)],["월 이자",man(Math.round(c.mi*10)/10)],["월 순수익",man(Math.round(c.net*10)/10)],["연 수익률",c.y==null?"-":pct(c.y)]];
@@ -1148,22 +1195,25 @@ function openPrint(bid,kind){PM={bid:bid,kind:kind};renderPrint();if(S.ph[bid]==
 function renderPrint(){var old=$("#pm");if(old)old.remove();if(!PM)return;var b=S.b[PM.bid];if(!b)return;var m=S.m[PM.bid]||{};
   var foot=(PM.kind==="mk"?m.footer:b.footer)||"";
   var d=document.createElement("div");d.id="pm";d.className="pm-bg";d.setAttribute("role","dialog");d.setAttribute("aria-label","인쇄용 매물장");
-  var hg=PM.kind==="hug";
-  d.innerHTML='<div class="pm-card"><div class="pm-h"><b>'+esc(b.name)+' · '+(hg?"허그 보증보험 검토":PM.kind==="mk"?"매물장 시세":"매물장")+'</b>'+
+  var hg=PM.kind==="hug"||PM.kind==="conf",cf=PM.kind==="conf";
+  d.innerHTML='<div class="pm-card"><div class="pm-h"><b>'+esc(b.name)+' · '+(cf?"허그 확인서":hg?"허그 보증보험 검토":PM.kind==="mk"?"매물장 시세":"매물장")+'</b>'+
    (hg?'':'<button type="button" class="btn sm" data-act="pm-kind">'+(PM.kind==="mk"?"현재 매물장 보기":"시세 보기")+'</button>')+
    '<button type="button" class="btn sm p" data-act="pm-pdf">PDF로 저장</button><button type="button" class="btn sm" data-act="pm-png">이미지로 저장</button><button type="button" class="btn sm ghost" data-act="pm-close" aria-label="닫기">✕ 닫기</button></div>'+
-   (hg?'<div class="pm-opt"><button type="button" class="btn sm'+(hugNoName()?" p":"")+'" data-act="pm-noname" aria-pressed="'+hugNoName()+'">'+(hugNoName()?"☑":"☐")+' 임차인 이름 숨기기</button><span>PDF로 저장한 뒤 열어서 인쇄하면 A4 한 장에 맞게 나옵니다.</span></div>':'<div class="pm-opt"><label for="pm-foot">하단 문구</label><input class="inp" id="pm-foot" value="'+esc(foot)+'" placeholder="예: 연락처 010-0000-0000"'+(S.canWrite?"":" readonly")+'><span>저장한 PDF를 열어 인쇄하면 A4 한 장에 맞게 나옵니다.</span></div>')+
+   (cf?'<div class="pm-opt"><span><b>밑줄 친 칸을 눌러 바로 고칠 수 있습니다.</b> 임대인·공인중개업자 칸은 한 번 적으면 모든 건물에 저장되고, 계약체결일은 호실마다 저장됩니다. 5세대마다 한 장씩 나오며, PDF로 저장하면 장마다 A4 한 장입니다.</span></div>':hg?'<div class="pm-opt"><button type="button" class="btn sm'+(hugNoName()?" p":"")+'" data-act="pm-noname" aria-pressed="'+hugNoName()+'">'+(hugNoName()?"☑":"☐")+' 임차인 이름 숨기기</button><span>PDF로 저장한 뒤 열어서 인쇄하면 A4 한 장에 맞게 나옵니다.</span></div>':'<div class="pm-opt"><label for="pm-foot">하단 문구</label><input class="inp" id="pm-foot" value="'+esc(foot)+'" placeholder="예: 연락처 010-0000-0000"'+(S.canWrite?"":" readonly")+'><span>저장한 PDF를 열어 인쇄하면 A4 한 장에 맞게 나옵니다.</span></div>')+
    '<div class="pm-body">'+sheetHtml(PM.bid,PM.kind)+'</div></div>';
   document.body.appendChild(d)}
 var libs=null;
 function loadLibs(){if(libs)return libs;function ld(src){return new Promise(function(res,rej){var s=document.createElement("script");s.src=src;s.onload=res;s.onerror=function(){rej(new Error("load"))};document.head.appendChild(s)})}
   libs=Promise.all([ld("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"),ld("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js")]);libs.catch(function(){libs=null});return libs}
-function exportSheet(fmt){var b=S.b[PM.bid],name=b.name+" "+(PM.kind==="hug"?"허그 검토":PM.kind==="mk"?"매물장 시세":"매물장");toast("파일을 만드는 중입니다…");
-  loadLibs().then(function(){return window.html2canvas($("#sheet"),{scale:2,backgroundColor:"#ffffff",useCORS:true})}).then(function(cv){
-    var data;if(fmt==="png"){return new Promise(function(r){cv.toBlob(function(bl){r({n:name+".png",d:bl})},"image/png")})}
-    var pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait"});var w=194,h=cv.height*w/cv.width;if(h>281){h=281;w=cv.width*h/cv.height}
-    pdf.addImage(cv.toDataURL("image/jpeg",0.95),"JPEG",(210-w)/2,8,w,h);return {n:name+".pdf",d:pdf.output("blob")}
-  }).then(function(f){return window.claude.use("downloads").then(function(dl){if(!dl){toast("이 화면에서는 파일 저장을 쓸 수 없습니다. claude.ai에서 열어 주세요.");return}
+function exportSheet(fmt){var b=S.b[PM.bid],name=b.name+" "+(PM.kind==="conf"?"허그 확인서":PM.kind==="hug"?"허그 검토":PM.kind==="mk"?"매물장 시세":"매물장");toast("파일을 만드는 중입니다…");
+  if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+  var els=[].slice.call(document.querySelectorAll("#pm .sheet"));var pmEl=$("#pm");if(pmEl)pmEl.classList.add("exporting");if(fmt==="png")els=els.slice(0,1);
+  loadLibs().then(function(){return els.reduce(function(p,el){return p.then(function(a){return window.html2canvas(el,{scale:2,backgroundColor:"#ffffff",useCORS:true}).then(function(cv){return a.concat([cv])})})},Promise.resolve([]))}).then(function(cvs){var cv=cvs[0];
+    if(fmt==="png"){return new Promise(function(r){cv.toBlob(function(bl){r({n:name+".png",d:bl})},"image/png")})}
+    var pdf=new window.jspdf.jsPDF({unit:"mm",format:"a4",orientation:"portrait"});
+    cvs.forEach(function(cv,i){if(i)pdf.addPage();var w=194,h=cv.height*w/cv.width;if(h>281){h=281;w=cv.width*h/cv.height}
+      pdf.addImage(cv.toDataURL("image/jpeg",0.95),"JPEG",(210-w)/2,8,w,h)});return {n:name+".pdf",d:pdf.output("blob")}
+  }).then(function(f){if(pmEl)pmEl.classList.remove("exporting");return f}).then(function(f){return window.claude.use("downloads").then(function(dl){if(!dl){toast("이 화면에서는 파일 저장을 쓸 수 없습니다. claude.ai에서 열어 주세요.");return}
     return dl.save({filename:f.n,data:f.d}).then(function(){toast(f.n+" 저장")},function(e){if(e&&e.code!=="declined")toast("저장하지 못했습니다: "+(e.message||e.code))})})
   }).catch(function(e){toast("파일을 만들지 못했습니다. 잠시 후 다시 눌러 주세요.")})}
 document.addEventListener("keydown",function(e){if(e.key==="Escape"&&PM){PM=null;renderPrint()}});
@@ -1311,7 +1361,7 @@ function hugCard(bid){var b=S.b[bid],c=hugCalc(bid),sd=c.sd,ro=S.canWrite?"":" r
   var cell=function(v,lim){if(lim==null)return '<td class="num muted">'+pc(v)+'</td>';var ok=v<=lim+1e-9;return '<td class="num"><b class="'+(ok?"neg":"pos")+'">'+pc(v)+'</b></td>'};
   var hv=hugValid(b);var verdict=function(ok,mx,who){if(!c.P)return '<span class="tag etc">감정평가액이나 공시가격을 넣어 주세요</span>';if(c.src==="appr"&&hv&&!hv.ok&&(who==="임차인"||hv.lord))return '<span class="tag bad hug-v">감정평가 유효기간 지남</span><small class="muted"> 계산상 '+(ok?"가능":"불가")+'</small>';return '<span class="tag '+(ok?"paid":"bad")+' hug-v">'+(hugExp(bid)?"예상 ":"")+who+' '+(ok?"가능":"불가")+'</span>'+(c.cu?'<small class="muted"> 이 호실 보증금 최대 <b>'+won(mx)+'</b></small>':'')};
   var uo='<option value="">계약 호실 고르기 (없으면 전체 보증금으로 계산)</option>'+ulist(bid).map(function(u){return '<option value="'+u.id+'"'+(c.cu&&c.cu.id===u.id?" selected":"")+'>'+esc(u.ho)+(u.name?" "+esc(u.name):" (공실)")+'</option>'}).join("");
-  var h='<div class="card" id="hug-'+bid+'"><div class="card-h"><h3>허그 보증보험 확인<span class="sub">평택시 · 최근 기준</span></h3><button type="button" class="btn sm t" data-act="print" data-b="'+bid+'" data-k="hug">🖨 인쇄용 양식</button></div>'+
+  var h='<div class="card" id="hug-'+bid+'"><div class="card-h"><h3>허그 보증보험 확인<span class="sub">평택시 · 최근 기준</span></h3><button type="button" class="btn sm t" data-act="print" data-b="'+bid+'" data-k="hug">🖨 인쇄용 양식</button><button type="button" class="btn sm t" data-act="print" data-b="'+bid+'" data-k="conf">📄 확인서</button></div>'+
     '<div class="hug-in">'+
      '<div class="kv"><label>감정평가액</label><div class="kv-v">'+(hugMultiPrice(b)>0?'<b class="num" title="'+esc((S.u[b.hugRefUnit]||{}).ho||"")+' 감정평가금액 기준 · 면적 합으로 자동 계산">'+won(hugAppr(b))+'</b>':num("hugAppr",hugAppr(b),"감정평가 받은 건물만"))+'<label class="hug-pre" title="예비 감정평가면 실제 계산은 공시가격으로 합니다"><input type="checkbox" data-hugpre="'+bid+'"'+(b.hugPrelim?" checked":"")+dis+'> 예비</label></div></div>'+
      '<div class="kv"><label>감정평가일자</label><div class="kv-v"><input class="inp" type="date" data-hug="'+bid+'|hugDate" value="'+esc(b.hugDate||"")+'"'+ro+'></div></div>'+
@@ -1601,6 +1651,7 @@ Promise.all([window.claude&&window.claude.use?window.claude.use("db"):Promise.re
     /* 다른 곳(가져오기·다른 기기)에서 대출 목록이 바뀌면 묶음 잠금을 풀어 건물별로 다시 묶음 */
     if(S.lfz&&(nl0.length!==S.loans.length||nl0.some(function(l,i){var o=S.loans[i];return !o||o.bid!==l.bid||o.amount!==l.amount})))S.lfz=null;
     S.loans=nl0;S.got.loans=1;sched()},function(){});
+  db.doc("meta/hugform").onSnapshot(function(d){S.hf=d.exists?d.data():{}},function(){});
   db.doc("meta/docs").onSnapshot(function(d){S.docs=d.exists?(d.data().rows||[]).slice():[];sched()},function(){});
   db.doc("meta/departed").onSnapshot(function(d){var rs=d.exists?(d.data().rows||[]).slice():[];var keep=rs.filter(depKeep);S.dep=keep;S.got.dep=1;
     if(keep.length!==rs.length&&S.canWrite)saveDep();
